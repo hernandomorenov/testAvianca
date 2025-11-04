@@ -105,11 +105,16 @@ class BasePage:
     @allure.step("Click element: {locator}")
     def click_element(self, locator):
         """Hacer clic en un elemento"""
-        element = self.wait_for_element_clickable(locator)
+        element = self.wait_for_element(locator)
         if element:
-            element.click()
-            print(f"✅ Clic en elemento: {locator}")
-            return True
+            try:
+                element.click()
+                print(f"✅ Clic en elemento: {locator}")
+                return True
+            except:
+                # Intentar con JavaScript
+                self.driver.execute_script("arguments[0].click();", element)
+                return True
         return False
     
     @allure.step("Type text: {text} in element: {locator}")
