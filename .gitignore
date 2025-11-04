@@ -1,0 +1,57 @@
+#Entorno Virtual
+env/
+venv/
+.venv/
+ENV/
+
+# Python 
+__pycache__/
+.pytest_cache/
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+#Archivos temporales
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+
+#Variables de entorno
+.env/
+
+#ScreenShoot y videos
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.avi
+*.mov
+
+# Allure Reports
+allure-results/
+allure-report/
+allure/
+
+#Base de datos 
+*.db
+*.sqlite3
+*.sqlite
+database/test_results.db
+

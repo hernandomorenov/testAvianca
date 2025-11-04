@@ -53,10 +53,8 @@ git --version
 # 2. Instalar Python
 brew install python
 
-# 3. Instalar Git
-brew install git
 
-# 4. Verificar instalación
+# 3. Verificar instalación
 python3 --version
 pip3 --version
 git --version
@@ -72,9 +70,9 @@ python -m venv venv
 
 # 3. Activar entorno virtual
 # Windows:
-venv\Scripts\activate
+env\Scripts\activate
 # macOS:
-source venv/bin/activate
+source env/bin/activate
 
 # 4. Instalar dependencias
 pip install -r requirements.txt
@@ -108,31 +106,19 @@ python run_tests.py --test-type=all --workers=4
 
 #### Opción 2: Usar pytest directamente
 
-# Ejecutar todos los tests
-pytest tests/ -v -n 2 --alluredir=allure-results
+# Ejecutar Test en específico
+pytest tests/test_caso_1.py -v
+pytest tests/test_caso_7.py -v
 
-# Ejecutar caso específico
-pytest tests/test_caso_1.py -v --alluredir=allure-results
+# Solo tests de regresión
+pytest -m regression
 
-# Ejecutar con marcadores
-pytest -m "caso_1 or caso_2" -v -n 2 --alluredir=allure-results
+# Test específico por marca
+pytest -m caso_7
 
-# Ejecutar en modo headless
-pytest tests/ -v --headless --alluredir=allure-results
+#Ejecutar los reportes con allure
+pytest --alluredir=allure-results
 
-####               Ejecucion selectiva 
-# Solo casos de regresión
-pytest -m regression -v -n 2
+# Ver reporte en el navegador
+allure serve allure-results
 
-# Solo un caso específico
-pytest -m caso_1 -v
-
-# Smoke tests
-pytest -m smoke -v
-
-### Generara reporte de aAllure
-# Generar reporte
-allure generate allure-results --clean -o allure-report
-
-# Abrir reporte
-allure open allure-report
