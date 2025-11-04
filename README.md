@@ -64,8 +64,8 @@ git --version
 #### Configuración del proyecto 
 
 # 1. Clonar el repositorio
-git clone <repository-url>
-cd test-automation-engineer
+git clone https://github.com/hernandomorenov/testAvianca.git
+cd avianca-test
 
 # 2. Crear entorno virtual
 python -m venv venv
@@ -73,7 +73,7 @@ python -m venv venv
 # 3. Activar entorno virtual
 # Windows:
 venv\Scripts\activate
-# macOS/Linux:
+# macOS:
 source venv/bin/activate
 
 # 4. Instalar dependencias

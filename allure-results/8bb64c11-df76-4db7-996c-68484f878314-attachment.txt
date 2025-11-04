@@ -1,0 +1,6 @@
+POS: Chile
+Código: chile
+Antes: spain
+Después: chile
+URL: https://nuxqa4.avtest.ink/cl/
+Estado: ÉXITO

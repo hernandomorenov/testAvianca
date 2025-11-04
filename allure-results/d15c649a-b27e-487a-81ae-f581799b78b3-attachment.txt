@@ -1,0 +1,21 @@
+REPORTE FINAL - CASO 5: CAMBIO DE POS
+======================================================================
+Tiempo de ejecución: 68.91s
+Total de POS probados: 3
+Cambios exitosos: 3
+Cambios fallidos: 0
+Tasa de éxito: 100.0%
+
+DETALLE POR POS:
+----------------------------------------------------------------------
+✅ Otros países (other) - SUCCESS
+   Antes: spain | Después: other
+   URL: https://nuxqa4.avtest.ink/en/
+
+✅ España (spain) - SUCCESS
+   Antes: other | Después: spain
+   URL: https://nuxqa4.avtest.ink/es/
+
+✅ Chile (chile) - SUCCESS
+   Antes: spain | Después: chile
+   URL: https://nuxqa4.avtest.ink/cl/

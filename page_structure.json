@@ -1,0 +1,383 @@
+{
+  "inputs": [
+    {
+      "selector": "//input",
+      "tag": "input",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {
+        "name": "latitude",
+        "type": "hidden"
+      }
+    },
+    {
+      "selector": "//input",
+      "tag": "input",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {
+        "name": "longitude",
+        "type": "hidden"
+      }
+    },
+    {
+      "selector": "//input",
+      "tag": "input",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {
+        "name": "latitude",
+        "type": "hidden"
+      }
+    },
+    {
+      "selector": "//input[@placeholder]",
+      "tag": "input",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {
+        "id": "departureStationInputId",
+        "name": "departureStationInputId",
+        "class": "control_field_input",
+        "type": "text",
+        "placeholder": "Origen",
+        "value": "BOG"
+      }
+    },
+    {
+      "selector": "//input[@placeholder]",
+      "tag": "input",
+      "text": "",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "arrivalStationInputId",
+        "name": "arrivalStationInputId",
+        "class": "control_field_input",
+        "type": "text",
+        "placeholder": "Hacia"
+      }
+    },
+    {
+      "selector": "//input[@placeholder]",
+      "tag": "input",
+      "text": "",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "departureInputDatePickerId",
+        "name": "departureInputDatePickerId",
+        "class": "ui-input has-value ng-untouched ng-pristine ng-valid",
+        "type": "text",
+        "placeholder": "Ida",
+        "value": "05/11/2025"
+      }
+    },
+    {
+      "selector": "//input[@type='text']",
+      "tag": "input",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {
+        "id": "departureStationInputId",
+        "name": "departureStationInputId",
+        "class": "control_field_input",
+        "type": "text",
+        "placeholder": "Origen",
+        "value": "BOG"
+      }
+    },
+    {
+      "selector": "//input[@type='text']",
+      "tag": "input",
+      "text": "",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "arrivalStationInputId",
+        "name": "arrivalStationInputId",
+        "class": "control_field_input",
+        "type": "text",
+        "placeholder": "Hacia"
+      }
+    },
+    {
+      "selector": "//input[@type='text']",
+      "tag": "input",
+      "text": "",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "departureInputDatePickerId",
+        "name": "departureInputDatePickerId",
+        "class": "ui-input has-value ng-untouched ng-pristine ng-valid",
+        "type": "text",
+        "placeholder": "Ida",
+        "value": "05/11/2025"
+      }
+    },
+    {
+      "selector": "//input[contains(@class, 'input')]",
+      "tag": "input",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {
+        "id": "departureStationInputId",
+        "name": "departureStationInputId",
+        "class": "control_field_input",
+        "type": "text",
+        "placeholder": "Origen",
+        "value": "BOG"
+      }
+    },
+    {
+      "selector": "//input[contains(@class, 'input')]",
+      "tag": "input",
+      "text": "",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "arrivalStationInputId",
+        "name": "arrivalStationInputId",
+        "class": "control_field_input",
+        "type": "text",
+        "placeholder": "Hacia"
+      }
+    },
+    {
+      "selector": "//input[contains(@class, 'input')]",
+      "tag": "input",
+      "text": "",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "departureInputDatePickerId",
+        "name": "departureInputDatePickerId",
+        "class": "ui-input has-value ng-untouched ng-pristine ng-valid",
+        "type": "text",
+        "placeholder": "Ida",
+        "value": "05/11/2025"
+      }
+    }
+  ],
+  "buttons": [
+    {
+      "selector": "//button",
+      "tag": "button",
+      "text": "",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "nsAlertButton",
+        "class": "alert_close ng-star-inserted",
+        "type": "submit"
+      }
+    },
+    {
+      "selector": "//button",
+      "tag": "button",
+      "text": "Español",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "languageListTriggerId_18997",
+        "class": "dropdown_trigger dropdown_trigger--active",
+        "type": "submit"
+      }
+    },
+    {
+      "selector": "//button",
+      "tag": "button",
+      "text": "Colombia\nCOP",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "pointOfSaleSelectorId",
+        "class": "point-of-sale-selector_button",
+        "type": "submit"
+      }
+    },
+    {
+      "selector": "//a[contains(@class, 'button')]",
+      "tag": "a",
+      "text": "Reserva ahora",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "main-banner_button button ng-star-inserted",
+        "href": "https://nuxqa4.avtest.ink/es/ofertas-destinos/ofertas-de-vuelos/"
+      }
+    },
+    {
+      "selector": "//a[contains(@class, 'button')]",
+      "tag": "a",
+      "text": "Suscríbete ya",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "button btn-primary",
+        "href": "https://www.lifemiles.com/landing/clublm?utm_source=avianca&utm_medium=referral&utm_campaign=banner_secundario"
+      }
+    },
+    {
+      "selector": "//a[contains(@class, 'button')]",
+      "tag": "a",
+      "text": "Aplica ya",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "button btn-primary",
+        "href": "https://www.lifemiles.com/credit-card/get-credit-card?utm_source=avianca&utm_medium=referral&utm_campaign=banner_secundario"
+      }
+    }
+  ],
+  "selects": [
+    {
+      "selector": "//div[contains(@class, 'select')]",
+      "tag": "div",
+      "text": "Español",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "language-selector"
+      }
+    },
+    {
+      "selector": "//div[contains(@class, 'dropdown')]",
+      "tag": "div",
+      "text": "Español",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "dropdown dropdown-layout--default"
+      }
+    },
+    {
+      "selector": "//div[contains(@class, 'dropdown')]",
+      "tag": "div",
+      "text": "Seleccionar ciudad\nBogotá",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "dropdown dropdown-layout--default"
+      }
+    }
+  ],
+  "language_elements": [
+    {
+      "selector": "//*[contains(text(), 'EN')]",
+      "tag": "script",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {}
+    },
+    {
+      "selector": "//*[contains(text(), 'FR')]",
+      "tag": "script",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {}
+    },
+    {
+      "selector": "//*[contains(text(), 'PT')]",
+      "tag": "script",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {}
+    },
+    {
+      "selector": "//*[contains(@class, 'language')]",
+      "tag": "li",
+      "text": "Español",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "main-header_nav-secondary_item main-header_nav-secondary_item--language-selector",
+        "value": "0"
+      }
+    },
+    {
+      "selector": "//*[contains(@class, 'language')]",
+      "tag": "div",
+      "text": "Español",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "language-selector"
+      }
+    },
+    {
+      "selector": "//*[contains(@class, 'lang')]",
+      "tag": "li",
+      "text": "Español",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "main-header_nav-secondary_item main-header_nav-secondary_item--language-selector",
+        "value": "0"
+      }
+    },
+    {
+      "selector": "//*[contains(@class, 'lang')]",
+      "tag": "div",
+      "text": "Español",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "language-selector"
+      }
+    }
+  ],
+  "forms": [
+    {
+      "selector": "//div[contains(@class, 'form')]",
+      "tag": "div",
+      "text": "Origen\nBogotá\n(BOG)\nDestino",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "control_form"
+      }
+    },
+    {
+      "selector": "//div[contains(@class, 'form')]",
+      "tag": "div",
+      "text": "Fechas\nIda\nSearch.Search_DepartDateSelectedLabel\nV",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "id": "outboundStartDate",
+        "class": "control_form"
+      }
+    },
+    {
+      "selector": "//div[contains(@class, 'form')]",
+      "tag": "div",
+      "text": "Pasajeros\n1",
+      "visible": true,
+      "enabled": true,
+      "attributes": {
+        "class": "control_form"
+      }
+    },
+    {
+      "selector": "//div[contains(@class, 'booking')]",
+      "tag": "div",
+      "text": "",
+      "visible": false,
+      "enabled": true,
+      "attributes": {
+        "class": "main-banner_container main-banner--header-section-booking ng-star-inserted"
+      }
+    }
+  ]
+}
