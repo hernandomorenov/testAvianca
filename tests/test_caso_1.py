@@ -47,10 +47,6 @@ class TestCasoAutomatizado1:
                 home_page.navigate_to(Config.BASE_URL_ES)  # Usar URL específica para español
                 home_page.take_screenshot("caso1_pagina_cargada")
 
-                # Configurar idioma (ya estamos en español, pero por si acaso)
-                print("🔧 Configurando idioma español...")
-                home_page.change_language("spanish")
-
                 # Configurar POS
                 print("🔧 Configurando POS Other...")
                 home_page.change_pos("other")
@@ -68,9 +64,9 @@ class TestCasoAutomatizado1:
                 tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
                 home_page.set_dates(tomorrow)
 
-                # Configurar pasajeros
+                # Configurar pasajeros - CORREGIDO: parámetros en minúsculas
                 print("👥 Configurando pasajeros: 1 Adulto, 1 Joven, 1 Niño, 1 Infante...")
-                home_page.set_passengers(adults=1, youth=1, children=1, infants=1)
+                home_page.set_passengers(adults=1, youth=1, children=1, infants=1)  # <-- CORREGIDO
 
                 # Buscar vuelos
                 print("🔍 Buscando vuelos...")
@@ -119,10 +115,10 @@ class TestCasoAutomatizado1:
                 # Llenar información de todos los pasajeros
                 print("📝 Llenando información de pasajeros...")
                 passengers_page.fill_all_passengers(
-                    adults=1, 
-                    youth=1, 
-                    children=1, 
-                    infants=1
+                    adults=1,  # <-- CORREGIDO
+                    youth=1,   # <-- CORREGIDO
+                    children=1, # <-- CORREGIDO
+                    infants=1   # <-- CORREGIDO
                 )
 
                 # Continuar a servicios

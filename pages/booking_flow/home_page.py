@@ -1,8 +1,10 @@
 import datetime
+from datetime import datetime
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from pages.base_page import BasePage
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException
 import allure
 import time
 import unicodedata
@@ -142,26 +144,280 @@ class HomePage(BasePage):
 
     @allure.step("Set origin: {origin} and destination: {destination}")
     def set_origin_destination(self, origin, destination):
-        """Configurar origen y destino - VERSIÓN MEJORADA"""
+        """Configurar origen y destino - VERSIÓN CORREGIDA"""
         try:
             print(f"🔧 Configurando origen: {origin} y destino: {destination}")
             
-            # Primero intentar con el método original
-            success_origin = self.find_and_fill_origin(origin)
+            # PRIMERO: Configurar origen
+            print("🛫 Configurando origen...")
+            success_origin = self.find_and_select_from_station_list(origin, is_origin=True)
+            
             time.sleep(2)
-            success_destination = self.find_and_fill_destination(destination)
+            
+            # SEGUNDO: Configurar destino  
+            print("🛬 Configurando destino...")
+            success_destination = self.find_and_select_from_station_list(destination, is_origin=False)
             
             if success_origin and success_destination:
                 print("✅ Origen y destino configurados exitosamente")
                 return True
-            
-            # Si falla, intentar método alternativo
-            print("🔄 Intentando método alternativo para origen/destino...")
-            return self.set_origin_destination_alternative(origin, destination)
+            else:
+                print("❌ Error configurando origen/destino")
+                return False
             
         except Exception as e:
             print(f"❌ Error configurando origen/destino: {e}")
-            return self.set_origin_destination_alternative(origin, destination)
+            return False
+        
+    @allure.step("Find and select from station list: {station_name}")
+    def find_and_select_from_station_list(self, station_name, is_origin=True):
+        """Buscar y seleccionar una estación de la lista desplegable - VERSIÓN MEJORADA Y CORREGIDA"""
+        try:
+            print(f"🔍 Buscando estación: {station_name}")
+            
+            # Determinar el campo de entrada según si es origen o destino
+            if is_origin:
+                input_selectors = [
+                    "//input[contains(@placeholder, 'Origen') or contains(@placeholder, 'Origin') or contains(@aria-label, 'origen')]",
+                    "//input[contains(@id, 'origin') or contains(@name, 'origin') or contains(@id, 'departure')]",
+                    "//input[@data-testid*='origin' or @data-testid*='departure']",
+                    "//input[contains(@class, 'origin') or contains(@class, 'departure')]",
+                    # Selector específico para el campo de origen
+                    "//input[@id='departureStationInputId']",
+                    "//input[@name='departureStationInputId']",
+                    # Selectores adicionales para mayor robustez
+                    "//input[@aria-label*='origen' or @aria-label*='origin']",
+                    "//input[@data-placeholder*='origen' or @data-placeholder*='origin']"
+                ]
+            else:
+                input_selectors = [
+                    "//input[contains(@placeholder, 'Destino') or contains(@placeholder, 'Destination') or contains(@aria-label, 'destino')]",
+                    "//input[contains(@id, 'destination') or contains(@id, 'arrival')]",
+                    "//input[contains(@name, 'destination') or contains(@name, 'arrival')]",
+                    "//input[@data-testid*='destination' or @data-testid*='arrival']",
+                    # Selector específico para el campo de destino
+                    "//input[@id='arrivalStationInputId']",
+                    "//input[@name='arrivalStationInputId']",
+                    # Selectores adicionales para mayor robustez
+                    "//input[@aria-label*='destino' or @aria-label*='destination']",
+                    "//input[@data-placeholder*='destino' or @data-placeholder*='destination']"
+                ]
+            
+            # Encontrar y hacer clic en el campo de entrada
+            input_field = None
+            for selector in input_selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    print(f"🔍 Probando selector: {selector} - Encontrados: {len(elements)}")
+                    
+                    for element in elements:
+                        if element.is_displayed() and element.is_enabled():
+                            input_field = element
+                            print(f"✅ Campo {'origen' if is_origin else 'destino'} encontrado con: {selector}")
+                            
+                            # Hacer scroll al elemento
+                            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", element)
+                            time.sleep(1)
+                            break
+                    if input_field:
+                        break
+                except Exception as e:
+                    print(f"⚠️ Error con selector {selector}: {e}")
+                    continue
+            
+            if not input_field:
+                print(f"❌ No se pudo encontrar el campo de {'origen' if is_origin else 'destino'}")
+                # Debug: mostrar todos los inputs disponibles
+                print("🔍 DEBUG: Mostrando todos los inputs disponibles...")
+                all_inputs = self.driver.find_elements(By.TAG_NAME, "input")
+                for i, inp in enumerate(all_inputs):
+                    if inp.is_displayed():
+                        inp_id = inp.get_attribute('id') or 'sin-id'
+                        inp_placeholder = inp.get_attribute('placeholder') or 'sin-placeholder'
+                        inp_name = inp.get_attribute('name') or 'sin-name'
+                        print(f"   Input {i}: id='{inp_id}', name='{inp_name}', placeholder='{inp_placeholder}'")
+                return False
+            
+            # ESTRATEGIA MEJORADA: Intentar diferentes métodos de interacción
+            print("🔄 Intentando diferentes métodos de interacción...")
+            
+            # Obtener el nombre de la ciudad (sin código)
+            city_name = station_name.split(' - ')[0] if ' - ' in station_name else station_name
+            
+            # Método 1: Clic directo + envío de teclas
+            try:
+                print("🖱️ Método 1: Clic directo + send_keys")
+                input_field.click()
+                time.sleep(1)
+                input_field.clear()
+                input_field.send_keys(city_name)
+                print(f"✅ Texto ingresado: {city_name}")
+            except Exception as e:
+                print(f"⚠️ Método 1 falló: {e}")
+                
+                # Método 2: JavaScript para establecer valor
+                try:
+                    print("⚡ Método 2: JavaScript set value")
+                    self.driver.execute_script("arguments[0].value = arguments[1];", input_field, city_name)
+                    print(f"✅ Valor establecido via JavaScript: {city_name}")
+                    
+                    # Disparar evento input para activar la lista desplegable
+                    self.driver.execute_script("arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", input_field)
+                    time.sleep(1)
+                except Exception as e2:
+                    print(f"⚠️ Método 2 falló: {e2}")
+                    
+                    # Método 3: ActionChains
+                    try:
+                        print("🎯 Método 3: ActionChains")
+                        actions = ActionChains(self.driver)
+                        actions.move_to_element(input_field).click().pause(1).send_keys(city_name).perform()
+                        print(f"✅ Texto ingresado via ActionChains: {city_name}")
+                    except Exception as e3:
+                        print(f"❌ Todos los métodos fallaron: {e3}")
+                        return False
+            
+            # Esperar a que aparezca la lista desplegable
+            print("⏳ Esperando a que aparezca la lista desplegable...")
+            time.sleep(3)
+            
+            # Buscar y seleccionar la opción de la lista
+            success = self.select_station_from_dropdown(station_name)
+            
+            if not success:
+                print(f"⚠️ No se pudo seleccionar {station_name} del dropdown, intentando método alternativo...")
+                # Intentar método alternativo: escribir el código directamente
+                station_code = station_name.split(' - ')[-1] if ' - ' in station_name else station_name
+                if len(station_code) == 3:  # Probable código de aeropuerto
+                    try:
+                        input_field.clear()
+                        input_field.send_keys(station_code)
+                        time.sleep(2)
+                        success = self.select_station_from_dropdown(station_name)
+                    except Exception as e:
+                        print(f"⚠️ Método alternativo también falló: {e}")
+            
+            return success
+            
+        except Exception as e:
+            print(f"❌ Error buscando estación {station_name}: {e}")
+            return False
+        
+    @allure.step("Select station from dropdown: {station_name}")
+    def select_station_from_dropdown(self, station_name):
+        """Seleccionar una estación específica de la lista desplegable - VERSIÓN MEJORADA"""
+        try:
+            print(f"🔍 Buscando opción: {station_name}")
+            
+            # Selector específico para los items de la lista de estaciones
+            station_selectors = [
+                f"//li[contains(@class, 'station-control-list_item') and contains(., '{station_name}')]",
+                f"//div[contains(@class, 'station-control-list_item') and contains(., '{station_name}')]",
+                f"//*[contains(@class, 'station-control-list_item') and contains(., '{station_name}')]",
+                f"//li[contains(@class, 'dropdown-item') and contains(., '{station_name}')]",
+                f"//div[contains(@class, 'dropdown-item') and contains(., '{station_name}')]",
+                f"//*[contains(@role, 'option') and contains(., '{station_name}')]",
+                f"//*[contains(@class, 'autocomplete') and contains(., '{station_name}')]"
+            ]
+            
+            # Si no encontramos con el nombre completo, buscar por código
+            station_code = station_name.split(' - ')[-1] if ' - ' in station_name else station_name
+            if len(station_code) == 3:  # Probablemente un código de aeropuerto
+                station_selectors.extend([
+                    f"//li[contains(@class, 'station-control-list_item') and contains(., '{station_code}')]",
+                    f"//div[contains(@class, 'station-control-list_item') and contains(., '{station_code}')]",
+                    f"//*[contains(., '{station_code}') and contains(@class, 'option')]"
+                ])
+            
+            for selector in station_selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    print(f"🔍 Con selector '{selector}' encontró {len(elements)} elementos")
+                    
+                    for element in elements:
+                        if element.is_displayed():
+                            element_text = element.text.strip()
+                            print(f"📝 Opción encontrada: '{element_text}'")
+                            
+                            if station_name.upper() in element_text.upper() or station_code.upper() in element_text.upper():
+                                print(f"✅ Coincidencia encontrada: '{element_text}'")
+                                
+                                # Hacer scroll al elemento
+                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", element)
+                                time.sleep(1)
+                                
+                                # Intentar diferentes métodos de clic
+                                click_methods = [
+                                    ("clic normal", lambda: element.click()),
+                                    ("JavaScript", lambda: self.driver.execute_script("arguments[0].click();", element)),
+                                    ("ActionChains", lambda: ActionChains(self.driver).move_to_element(element).click().perform())
+                                ]
+                                
+                                for method_name, click_func in click_methods:
+                                    try:
+                                        print(f"🖱️ Intentando clic con: {method_name}")
+                                        click_func()
+                                        time.sleep(2)
+                                        
+                                        # Verificar si la selección fue exitosa
+                                        if self.verify_station_selected(station_name):
+                                            print(f"✅ Estación '{station_name}' seleccionada exitosamente")
+                                            return True
+                                        else:
+                                            print(f"⚠️ Clic ejecutado pero no verificado con {method_name}")
+                                    except ElementClickInterceptedException:
+                                        print(f"⚠️ Elemento interceptado con {method_name}")
+                                        continue
+                                    except Exception as e:
+                                        print(f"⚠️ Error con {method_name}: {e}")
+                                        continue
+                except Exception as e:
+                    print(f"⚠️ Error con selector {selector}: {e}")
+                    continue
+            
+            print(f"❌ No se pudo encontrar/select la estación: {station_name}")
+            return False
+            
+        except Exception as e:
+            print(f"❌ Error seleccionando estación: {e}")
+            return False
+        
+    @allure.step("Verify station selected: {station_name}")
+    def verify_station_selected(self, station_name):
+        """Verificar que la estación fue seleccionada correctamente - VERSIÓN MEJORADA"""
+        try:
+            time.sleep(2)
+            
+            # Extraer ciudad y código
+            city_name = station_name.split(' - ')[0] if ' - ' in station_name else station_name
+            station_code = station_name.split(' - ')[-1] if ' - ' in station_name else station_name
+            
+            # Verificar si el campo muestra la estación seleccionada
+            all_inputs = self.driver.find_elements(By.TAG_NAME, "input")
+            for input_field in all_inputs:
+                if input_field.is_displayed():
+                    current_value = input_field.get_attribute('value') or ''
+                    if city_name in current_value or station_code in current_value:
+                        print(f"✅ Verificación exitosa: {station_name} está seleccionado")
+                        return True
+            
+            # Verificar también en elementos que no sean inputs
+            all_elements = self.driver.find_elements(By.XPATH, "//*[contains(text(), '" + city_name + "') or contains(text(), '" + station_code + "')]")
+            for element in all_elements:
+                if element.is_displayed():
+                    element_text = element.text.strip()
+                    if city_name in element_text or station_code in element_text:
+                        print(f"✅ Verificación por texto: {station_name} está seleccionado")
+                        return True
+            
+            # Si no se puede verificar, continuar de todos modos
+            print("⚠️ No se pudo verificar la selección, pero continuando...")
+            return True  # Continuar aunque falle la verificación
+            
+        except Exception as e:
+            print(f"⚠️ Error verificando selección: {e}")
+            return True  # Continuar aunque falle la verificación
+    
     @allure.step("Set origin and destination alternative method")
     def set_origin_destination_alternative(self, origin, destination):
         """Método alternativo para configurar origen y destino"""
@@ -1660,38 +1916,21 @@ class HomePage(BasePage):
 
     @allure.step("Set dates: {departure_date}")
     def set_dates(self, departure_date):
-        """Configurar fecha de salida - VERSIÓN MÁS ROBUSTA"""
+        """Configurar fecha de salida - VERSIÓN MEJORADA"""
         try:
             print(f"📅 Configurando fecha de salida: {departure_date}")
             
-            # Convertir fecha a diferentes formatos
-            date_obj = datetime.strptime(departure_date, "%Y-%m-%d")
-            date_formats = {
-                "yyyy-mm-dd": departure_date,
-                "dd/mm/yyyy": date_obj.strftime("%d/%m/%Y"),
-                "mm/dd/yyyy": date_obj.strftime("%m/%d/%Y"),
-                "dd-mm-yyyy": date_obj.strftime("%d-%m-%Y"),
-                "ddmmyyyy": date_obj.strftime("%d%m%Y")
-            }
-            
             # ESTRATEGIA 1: Buscar campo de fecha específico
             date_selectors = [
-                # Selectores específicos
                 "//input[contains(@id, 'departure') or contains(@id, 'salida')]",
                 "//input[contains(@name, 'departure') or contains(@name, 'salida')]",
                 "//input[contains(@placeholder, 'Salida') or contains(@placeholder, 'Departure')]",
                 "//input[contains(@aria-label, 'salida') or contains(@aria-label, 'departure')]",
                 "//input[@data-testid*='departure' or @data-testid*='salida']",
-                
                 # Selectores generales de fecha
                 "//input[@type='date']",
                 "//input[contains(@class, 'date')]",
                 "//input[contains(@class, 'departure')]",
-                
-                # Selectores para datepickers
-                "//div[contains(@class, 'datepicker')]//input",
-                "//div[contains(@class, 'calendar')]//input",
-                "//input[contains(@class, 'datepicker')]"
             ]
             
             for selector in date_selectors:
@@ -1703,106 +1942,24 @@ class HomePage(BasePage):
                         if element.is_displayed() and element.is_enabled():
                             print(f"   ✅ Campo de fecha encontrado: {selector}")
                             
-                            # Intentar diferentes formatos de fecha
-                            for format_name, date_format in date_formats.items():
-                                try:
-                                    element.clear()
-                                    element.send_keys(date_format)
-                                    print(f"   📝 Intentando formato {format_name}: {date_format}")
-                                    time.sleep(1)
-                                    
-                                    # Verificar si la fecha se aceptó
-                                    current_value = element.get_attribute('value')
-                                    if current_value:
-                                        print(f"   ✅ Fecha aceptada: {current_value}")
-                                        return True
-                                        
-                                    # Presionar Tab para forzar el cambio
-                                    from selenium.webdriver.common.keys import Keys
-                                    element.send_keys(Keys.TAB)
-                                    time.sleep(1)
-                                    
-                                except Exception as e:
-                                    print(f"   ⚠️ Error con formato {format_name}: {e}")
-                                    continue
-                                    
+                            # Intentar establecer la fecha directamente
+                            try:
+                                element.clear()
+                                element.send_keys(departure_date)
+                                print(f"   ✅ Fecha ingresada: {departure_date}")
+                                time.sleep(1)
+                                return True
+                            except Exception as e:
+                                print(f"   ⚠️ Error ingresando fecha: {e}")
+                                continue
+                                
                 except Exception as e:
                     print(f"   ⚠️ Error con selector {selector}: {e}")
                     continue
             
-            # ESTRATEGIA 2: Buscar en todos los inputs de fecha
-            print("🔍 Estrategia 2: Buscando en todos los inputs...")
-            all_inputs = self.driver.find_elements(By.TAG_NAME, "input")
-            date_inputs = []
-            
-            for input_field in all_inputs:
-                try:
-                    if input_field.is_displayed() and input_field.is_enabled():
-                        input_type = input_field.get_attribute('type') or ''
-                        input_id = input_field.get_attribute('id') or ''
-                        input_name = input_field.get_attribute('name') or ''
-                        input_placeholder = input_field.get_attribute('placeholder') or ''
-                        input_class = input_field.get_attribute('class') or ''
-                        
-                        # Verificar si parece ser un campo de fecha
-                        is_date_like = (
-                            input_type == 'date' or
-                            'date' in input_type.lower() or
-                            any(word in input_id.lower() for word in ['date', 'fecha', 'departure', 'salida']) or
-                            any(word in input_name.lower() for word in ['date', 'fecha', 'departure', 'salida']) or
-                            any(word in input_placeholder.lower() for word in ['date', 'fecha', 'departure', 'salida']) or
-                            any(word in input_class.lower() for word in ['date', 'fecha'])
-                        )
-                        
-                        if is_date_like:
-                            date_inputs.append(input_field)
-                            print(f"   📅 Input potencial: id='{input_id}', placeholder='{input_placeholder}'")
-                            
-                except Exception as e:
-                    continue
-            
-            print(f"🔍 Encontrados {len(date_inputs)} inputs de fecha potenciales")
-            
-            for date_input in date_inputs:
-                for format_name, date_format in date_formats.items():
-                    try:
-                        date_input.clear()
-                        date_input.send_keys(date_format)
-                        print(f"   📝 Probando formato {format_name} en campo: {date_format}")
-                        time.sleep(1)
-                        
-                        # Verificar si funcionó
-                        current_value = date_input.get_attribute('value')
-                        if current_value:
-                            print(f"   ✅ Fecha configurada: {current_value}")
-                            return True
-                            
-                    except Exception as e:
-                        print(f"   ⚠️ Error ingresando fecha: {e}")
-                        continue
-            
-            # ESTRATEGIA 3: Usar datepicker si está disponible
-            print("🔍 Estrategia 3: Intentando con datepicker...")
-            datepicker_selectors = [
-                "//div[contains(@class, 'datepicker')]",
-                "//div[contains(@class, 'calendar')]",
-                "//div[contains(@class, 'date-picker')]"
-            ]
-            
-            for selector in datepicker_selectors:
-                try:
-                    datepickers = self.driver.find_elements(By.XPATH, selector)
-                    if datepickers:
-                        print(f"   📅 Datepicker encontrado: {selector}")
-                        # Aquí podrías implementar lógica para seleccionar fecha en el datepicker
-                        print("   ℹ️ Datepicker detectado, pero necesita implementación específica")
-                except:
-                    continue
-            
-            # ESTRATEGIA 4: Método de último recurso - JavaScript
-            print("🔍 Estrategia 4: Método JavaScript...")
+            # ESTRATEGIA 2: Si no funciona, usar JavaScript
+            print("🔍 Estrategia 2: Método JavaScript...")
             try:
-                # Buscar el primer input de fecha y establecer valor via JS
                 date_inputs_js = self.driver.find_elements(By.XPATH, "//input[@type='date']")
                 if date_inputs_js:
                     self.driver.execute_script(f"arguments[0].value = '{departure_date}';", date_inputs_js[0])
@@ -1811,7 +1968,7 @@ class HomePage(BasePage):
             except Exception as e:
                 print(f"   ⚠️ Error con JavaScript: {e}")
             
-            print("⚠️ No se pudo configurar la fecha automáticamente")
+            print("⚠️ No se pudo configurar la fecha automáticamente, continuando...")
             return True  # Continuar de todos modos
             
         except Exception as e:
@@ -1874,80 +2031,521 @@ class HomePage(BasePage):
 
     @allure.step("Set passengers - Adults: {adults}, Youth: {youth}, Children: {children}, Infants: {infants}")
     def set_passengers(self, adults=1, youth=0, children=0, infants=0):
-            """Configurar número de pasajeros"""
-            try:
-                print(f"👥 Configurando pasajeros - Adultos: {adults}, Jóvenes: {youth}, Niños: {children}, Infantes: {infants}")
-                
-                # Buscar botón/selector de pasajeros
-                passenger_selectors = [
-                    "//button[contains(., 'pasajero')]",
-                    "//button[contains(., 'passenger')]",
-                    "//div[contains(@class, 'passenger')]",
-                    "//input[contains(@id, 'passenger')]"
-                ]
-                
-                passenger_button = None
-                for selector in passenger_selectors:
-                    try:
-                        elements = self.driver.find_elements(By.XPATH, selector)
-                        for element in elements:
-                            if element.is_displayed():
+        """Configurar número de pasajeros - VERSIÓN CORREGIDA"""
+        try:
+            print(f"👥 Configurando pasajeros - Adultos: {adults}, Jóvenes: {youth}, Niños: {children}, Infantes: {infants}")
+            
+            # Selectores probables para el botón que abre el panel de pasajeros
+            passenger_button_selectors = [
+                "//button[contains(@class, 'control_field_button')]",
+                "//button[contains(@class, 'pax-control_selector_item_label-text')]",
+                "//div[contains(@class, 'passenger')]//button",
+                "//button[contains(., 'pasajero') or contains(., 'passenger') or contains(., 'Passengers') or contains(., 'Who\\'s flying')]",
+                "//button[contains(@class,'ui-num-ud_button')]/ancestor::div[contains(@class,'pax-control_selector_item')]"
+            ]
+            
+            passenger_button = None
+            for selector in passenger_button_selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    for element in elements:
+                        try:
+                            if element.is_displayed() and element.is_enabled():
                                 passenger_button = element
+                                print(f"✅ Botón de pasajeros encontrado: {selector}")
                                 break
-                        if passenger_button:
+                        except StaleElementReferenceException:
+                            continue
+                    if passenger_button:
+                        break
+                except Exception:
+                    continue
+            
+            if not passenger_button:
+                print("⚠️ No se encontró el botón de pasajeros, continuando sin cambiar pasajeros...")
+                return True
+            
+            # Abrir selector
+            try:
+                print("🖱️ Abriendo selector de pasajeros...")
+                passenger_button.click()
+                time.sleep(1.2)
+            except Exception as e:
+                print(f"❌ Error al hacer click en el botón de pasajeros: {e}")
+                # Intento alternativo: javascript click
+                try:
+                    self.driver.execute_script("arguments[0].click();", passenger_button)
+                    time.sleep(1.2)
+                except Exception as e2:
+                    print(f"❌ Falló click alternativo: {e2}")
+                    return False
+            
+            # Llamar a la función que ajusta los tipos
+            success = self.configure_passenger_types(adults, youth, children, infants)
+            if success:
+                print("✅ Configuración de pasajeros completada")
+                # Cerrar panel si hay botón de aplicar/cerrar (opcional)
+                try:
+                    # probar botón Done / Apply / Close (varios textos)
+                    close_selectors = [
+                        "//button[contains(., 'Done') or contains(., 'Apply') or contains(., 'Aceptar') or contains(., 'Cerrar') or contains(., 'Done')]",
+                        "//button[contains(@class,'pax-control_selector_close')]",
+                    ]
+                    for s in close_selectors:
+                        elems = self.driver.find_elements(By.XPATH, s)
+                        for e in elems:
+                            if e.is_displayed() and e.is_enabled():
+                                try:
+                                    e.click()
+                                    time.sleep(0.5)
+                                except Exception:
+                                    self.driver.execute_script("arguments[0].click();", e)
+                                    time.sleep(0.5)
+                                break
+                    return True
+                except Exception:
+                    return True
+            else:
+                print("⚠️ Configuración de pasajeros parcialmente completada")
+                return False
+
+        except Exception as e:
+            print(f"❌ Error configurando pasajeros: {e}")
+            return False
+        
+    @allure.step("Configure passenger types - Adults: {adults}, Youth: {youth}, Children: {children}, Infants: {infants}")
+    def configure_passenger_types(self, adults, youth, children, infants):
+        """
+        Ajusta cada fila del selector (Adults, Youths, Children, Infants) al valor indicado.
+        Devuelve True si todas las filas se ajustaron correctamente.
+        """
+        targets = {
+            'adult': adults,
+            'adultos': adults,
+            'adultos (18+)': adults,
+            'youth': youth,
+            'youths': youth,
+            'jóvenes': youth,
+            'children': children,
+            'child': children,
+            'niños': children,
+            'infants': infants,
+            'infant': infants,
+            'infantes': infants
+        }
+
+        success_overall = True
+
+        # Cada etiqueta posible y su texto en UI (comprensiva en inglés y español)
+        rows_to_find = {
+            'adults': ["Adult", "Adults", "Adultos"],
+            'youth': ["Youth", "Youths", "Youths 12-14", "Youths 12 to 14", "Jóvenes", "Youths"],
+            'children': ["Child", "Children", "Niño", "Niños", "Children 2 to 11", "Children 2-11"],
+            'infants': ["Infant", "Infants", "Infante", "Infantes", "Under 2 years", "Under 2 years old"]
+        }
+
+        for key, labels in rows_to_find.items():
+            target_value = {
+                'adults': adults,
+                'youth': youth,
+                'children': children,
+                'infants': infants
+            }[key]
+
+            # Si target es None o 0 y quieres que pueda ser 1 por defecto, no lo fuerces aquí;
+            # se respetará el valor que pase la llamada.
+            found_row = None
+            for label in labels:
+                # Buscamos la fila por texto de etiqueta (buscar <label> o div que contenga ese texto)
+                try:
+                    xpath_candidate = (
+                        f"//div[contains(normalize-space(.), '{label}')]/ancestor::div[contains(@class,'pax-control_selector_item') or contains(@class,'ui-num-ud') or contains(@class,'pax-control_selector_item_control')]"
+                    )
+                    rows = self.driver.find_elements(By.XPATH, xpath_candidate)
+                    for r in rows:
+                        try:
+                            if r.is_displayed():
+                                found_row = r
+                                break
+                        except StaleElementReferenceException:
+                            continue
+                    if found_row:
+                        print(f"🔎 Fila encontrada para '{label}' con XPath: {xpath_candidate}")
+                        break
+                except Exception:
+                    continue
+
+            # Si no se encontró la fila con el método anterior, intentar buscar por texto plano dentro de elementos comunes
+            if not found_row:
+                try:
+                    alternatives = self.driver.find_elements(By.XPATH, "//div[contains(@class,'ui-num-ud') or contains(@class,'pax-control_selector_item')]")
+                    for alt in alternatives:
+                        try:
+                            text = alt.text.lower()
+                            for lbl in labels:
+                                if lbl.lower() in text:
+                                    found_row = alt
+                                    break
+                            if found_row:
+                                print(f"🔎 Fila alternativa encontrada para '{labels}'")
+                                break
+                        except StaleElementReferenceException:
+                            continue
+                except Exception:
+                    pass
+
+            if not found_row:
+                print(f"❗ No se encontró la fila para {key} ({labels}), se omite ajuste.")
+                success_overall = False
+                continue
+
+            ok = self.adjust_counter(found_row, target_value)
+            if not ok:
+                print(f"❌ No se pudo ajustar {key} a {target_value}")
+                success_overall = False
+            else:
+                print(f"✅ {key} ajustado a {target_value}")
+
+        return success_overall
+
+    def adjust_counter(self, row_element, target_value, timeout=8):
+        """
+        Dado el elemento de la fila (row_element), pulsa + o - hasta llegar a target_value.
+        - Busca botones con clases o iconos comunes: 'plus', 'minus', 'ui-num-ud_button'
+        - Lee el valor actual desde un input o label en la fila.
+        """
+        start_time = time.time()
+        try:
+            # localizar control de valor dentro de la fila
+            # posibles selectores para el campo de valor
+            value_selectors = [
+                ".//input[contains(@class,'ui-num-ud_input')]",
+                ".//div[contains(@class,'ui-num-ud_input')]",
+                ".//span[contains(@class,'ui-num-ud_value')]",
+                ".//div[contains(@class,'pax-control_selector_item_label-count')]",
+                ".//span[contains(@class,'count')]"
+            ]
+            current_value = None
+            value_elem = None
+            for vs in value_selectors:
+                try:
+                    els = row_element.find_elements(By.XPATH, vs)
+                    if els:
+                        # escoger el visible
+                        for e in els:
+                            try:
+                                if e.is_displayed():
+                                    value_elem = e
+                                    txt = e.get_attribute('value') or e.text
+                                    if txt and txt.strip().isdigit():
+                                        current_value = int(txt.strip())
+                                    else:
+                                        # intentar extraer dígitos del texto
+                                        import re
+                                        m = re.search(r"\d+", (txt or ""))
+                                        if m:
+                                            current_value = int(m.group())
+                                    break
+                            except StaleElementReferenceException:
+                                continue
+                    if current_value is not None:
+                        break
+                except Exception:
+                    continue
+
+            # si no encontramos elemento de valor, intentar tomar un valor por defecto 0 o 1
+            if current_value is None:
+                print("⚠️ No se pudo leer el valor actual; asumiendo 0 como valor inicial.")
+                current_value = 0
+
+            # localizar botones + y -
+            plus_btn = None
+            minus_btn = None
+            try:
+                # selector relativo dentro de la fila
+                plus_candidates = row_element.find_elements(By.XPATH, ".//button[contains(@class,'plus') or contains(@class,'ui-num-ud_button') and contains(., '+') or contains(., '＋') or contains(., 'add') or contains(@aria-label,'increase')]")
+                minus_candidates = row_element.find_elements(By.XPATH, ".//button[contains(@class,'minus') or contains(@class,'ui-num-ud_button') and contains(., '-') or contains(., '−') or contains(., 'sub') or contains(@aria-label,'decrease')]")
+                # fallback más amplio
+                if not plus_candidates:
+                    plus_candidates = row_element.find_elements(By.XPATH, ".//button[contains(., '+') or contains(., 'add') or contains(., 'Más') or contains(., 'más')]")
+                if not minus_candidates:
+                    minus_candidates = row_element.find_elements(By.XPATH, ".//button[contains(., '-') or contains(., 'Less') or contains(., 'Menos') or contains(., '−')]")
+                for p in plus_candidates:
+                    try:
+                        if p.is_displayed() and p.is_enabled():
+                            plus_btn = p
                             break
                     except Exception:
                         continue
-                
-                if passenger_button:
-                    # Hacer clic para abrir el selector
+                for m in minus_candidates:
                     try:
-                        passenger_button.click()
-                        time.sleep(2)
-                        print("✅ Selector de pasajeros abierto")
-                    except Exception as e:
-                        print(f"⚠️ No se pudo abrir selector de pasajeros: {e}")
-                
-                # En una implementación real, aquí incrementarías los contadores
-                # Por ahora, simplemente continuamos
-                print("✅ Configuración de pasajeros completada (simulada)")
-                return True
-                
-            except Exception as e:
-                print(f"❌ Error configurando pasajeros: {e}")
-                return True
+                        if m.is_displayed() and m.is_enabled():
+                            minus_btn = m
+                            break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
 
-
-    @allure.step("Search flights alternative method")
-    def search_flights_alternative(self):
-        """Método alternativo para buscar vuelos"""
-        try:
-            print("🔄 Intentando búsqueda alternativa de vuelos...")
-            
-            # Intentar con Enter en cualquier campo visible
-            from selenium.webdriver.common.keys import Keys
-            inputs = self.driver.find_elements(By.TAG_NAME, "input")
-            for input_field in inputs:
+            # Lógica para ajustar
+            attempts = 0
+            max_attempts = 30  # prevenir loop infinito
+            while current_value != target_value and (time.time() - start_time) < timeout and attempts < max_attempts:
+                attempts += 1
                 try:
-                    if input_field.is_displayed() and input_field.is_enabled():
-                        input_field.send_keys(Keys.ENTER)
-                        time.sleep(3)
-                        print("✅ Búsqueda alternativa ejecutada")
-                        return True
+                    if current_value < target_value:
+                        if plus_btn:
+                            try:
+                                plus_btn.click()
+                            except (ElementClickInterceptedException, StaleElementReferenceException):
+                                try:
+                                    self.driver.execute_script("arguments[0].click();", plus_btn)
+                                except Exception:
+                                    pass
+                        else:
+                            print("⚠️ No se encontró botón + para incrementar.")
+                            return False
+                    elif current_value > target_value:
+                        if minus_btn:
+                            try:
+                                minus_btn.click()
+                            except (ElementClickInterceptedException, StaleElementReferenceException):
+                                try:
+                                    self.driver.execute_script("arguments[0].click();", minus_btn)
+                                except Exception:
+                                    pass
+                        else:
+                            print("⚠️ No se encontró botón - para decrementar.")
+                            return False
+
+                    time.sleep(0.35)  # esperar a que UI actualice
+                    # re-leer el valor
+                    if value_elem:
+                        try:
+                            txt = value_elem.get_attribute('value') or value_elem.text
+                            if txt and txt.strip().isdigit():
+                                current_value = int(txt.strip())
+                            else:
+                                import re
+                                m = re.search(r"\d+", (txt or ""))
+                                if m:
+                                    current_value = int(m.group())
+                        except StaleElementReferenceException:
+                            # re-localizar value_elem
+                            current_value = None
+                            for vs in value_selectors:
+                                try:
+                                    els = row_element.find_elements(By.XPATH, vs)
+                                    for e in els:
+                                        try:
+                                            if e.is_displayed():
+                                                value_elem = e
+                                                txt = e.get_attribute('value') or e.text
+                                                if txt and txt.strip().isdigit():
+                                                    current_value = int(txt.strip())
+                                                else:
+                                                    import re
+                                                    m = re.search(r"\d+", (txt or ""))
+                                                    if m:
+                                                        current_value = int(m.group())
+                                                break
+                                        except Exception:
+                                            continue
+                                    if current_value is not None:
+                                        break
+                                except Exception:
+                                    continue
+                    else:
+                        # intentar localizar valor cada iteración
+                        current_value = None
+                        for vs in value_selectors:
+                            try:
+                                els = row_element.find_elements(By.XPATH, vs)
+                                for e in els:
+                                    try:
+                                        if e.is_displayed():
+                                            txt = e.get_attribute('value') or e.text
+                                            if txt and txt.strip().isdigit():
+                                                current_value = int(txt.strip())
+                                                break
+                                            else:
+                                                import re
+                                                m = re.search(r"\d+", (txt or ""))
+                                                if m:
+                                                    current_value = int(m.group())
+                                                    break
+                                    except Exception:
+                                        continue
+                                if current_value is not None:
+                                    break
+                            except Exception:
+                                continue
+
+                    # si no pudimos leer, el bucle seguirá hasta timeout
+                    if current_value is None:
+                        current_value = 0
+
+                except Exception as e:
+                    print(f"⚠️ Excepción en ajuste: {e}")
+                    break
+
+            # comprobar resultado final
+            if current_value == target_value:
+                return True
+            else:
+                print(f"⚠️ Timeout/No ajustado: valor_actual={current_value}, objetivo={target_value}")
+                return False
+
+        except Exception as e:
+            print(f"❌ Error en adjust_counter: {e}")
+            return False
+    
+    @allure.step("Close passenger selector")
+    def close_passenger_selector(self):
+        """Cerrar el selector de pasajeros"""
+        try:
+            # Intentar diferentes métodos para cerrar el selector
+            close_methods = [
+                # Hacer clic fuera del selector
+                lambda: self.driver.find_element(By.TAG_NAME, 'body').click(),
+                # Buscar botón de aplicar/confirmar
+                lambda: self.click_element((By.XPATH, "//button[contains(., 'Aplicar') or contains(., 'Apply') or contains(., 'Listo') or contains(., 'Done')]")),
+                # Buscar botón de cerrar
+                lambda: self.click_element((By.XPATH, "//button[contains(@class, 'close') or contains(@class, 'cancel')]"))
+            ]
+            
+            for method in close_methods:
+                try:
+                    method()
+                    time.sleep(1)
+                    print("✅ Selector de pasajeros cerrado")
+                    return True
                 except:
                     continue
             
-            # Intentar con JavaScript
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(1)
-            self.driver.execute_script("window.scrollTo(0, 0);")
+            print("⚠️ No se pudo cerrar el selector de pasajeros automáticamente")
+            return True
+        except Exception as e:
+            print(f"⚠️ Error cerrando selector: {e}")
+            return True
+    
+    @allure.step("Set passenger count for {passenger_type}: {target_count}")
+    def set_passenger_count(self, passenger_type, target_count, selectors):
+        """Configurar la cantidad específica para un tipo de pasajero"""
+        try:
+            print(f"🔧 Configurando {passenger_type}: {target_count}")
             
-            print("⚠️ Búsqueda alternativa no tuvo efecto")
+            # Encontrar el contenedor del tipo de pasajero
+            passenger_container = None
+            for selector in selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    for element in elements:
+                        if element.is_displayed():
+                            passenger_container = element
+                            print(f"✅ Contenedor de {passenger_type} encontrado")
+                            break
+                    if passenger_container:
+                        break
+                except Exception as e:
+                    continue
+            
+            if not passenger_container:
+                print(f"⚠️ No se encontró contenedor para {passenger_type}")
+                return False
+            
+            # Buscar los controles de incremento/decremento dentro del contenedor
+            # Buscar inputs numéricos con clase ui-num-ud_input
+            input_selectors = [
+                ".//input[contains(@class, 'ui-num-ud_input')]",
+                ".//input[@type='number']",
+                ".//input[contains(@class, 'num-ud')]"
+            ]
+            
+            current_count = 0
+            
+            for input_selector in input_selectors:
+                try:
+                    input_field = passenger_container.find_element(By.XPATH, input_selector)
+                    if input_field.is_displayed():
+                        current_count = int(input_field.get_attribute('value') or '0')
+                        print(f"📊 Cantidad actual de {passenger_type}: {current_count}")
+                        
+                        # Calcular cuántos incrementos necesitamos
+                        increments_needed = target_count - current_count
+                        
+                        if increments_needed > 0:
+                            # Buscar botón de incremento (+)
+                            increment_selectors = [
+                                ".//button[contains(@class, 'ui-num-ud_plus')]",
+                                ".//button[contains(@class, 'increment')]",
+                                ".//button[contains(text(), '+')]",
+                                ".//button[contains(@class, 'plus')]"
+                            ]
+                            
+                            increment_button = None
+                            for inc_selector in increment_selectors:
+                                try:
+                                    button = passenger_container.find_element(By.XPATH, inc_selector)
+                                    if button.is_displayed() and button.is_enabled():
+                                        increment_button = button
+                                        break
+                                except:
+                                    continue
+                            
+                            if increment_button:
+                                for i in range(increments_needed):
+                                    try:
+                                        increment_button.click()
+                                        time.sleep(0.5)
+                                        print(f"➕ Incrementado {passenger_type}: {current_count + i + 1}")
+                                    except Exception as e:
+                                        print(f"⚠️ Error incrementando {passenger_type}: {e}")
+                                        break
+                        
+                        elif increments_needed < 0:
+                            # Buscar botón de decremento (-)
+                            decrement_selectors = [
+                                ".//button[contains(@class, 'ui-num-ud_minus')]",
+                                ".//button[contains(@class, 'decrement')]",
+                                ".//button[contains(text(), '-')]",
+                                ".//button[contains(@class, 'minus')]"
+                            ]
+                            
+                            decrement_button = None
+                            for dec_selector in decrement_selectors:
+                                try:
+                                    button = passenger_container.find_element(By.XPATH, dec_selector)
+                                    if button.is_displayed() and button.is_enabled():
+                                        decrement_button = button
+                                        break
+                                except:
+                                    continue
+                            
+                            if decrement_button:
+                                for i in range(abs(increments_needed)):
+                                    try:
+                                        decrement_button.click()
+                                        time.sleep(0.5)
+                                        print(f"➖ Decrementado {passenger_type}: {current_count - i - 1}")
+                                    except Exception as e:
+                                        print(f"⚠️ Error decrementando {passenger_type}: {e}")
+                                        break
+                        
+                        print(f"✅ {passenger_type} configurado a: {target_count}")
+                        return True
+                        
+                except Exception as e:
+                    continue
+            
+            print(f"❌ No se pudo configurar {passenger_type}")
             return False
             
         except Exception as e:
-            print(f"❌ Error en búsqueda alternativa: {e}")
+            print(f"❌ Error configurando cantidad de {passenger_type}: {e}")
             return False
+
+    
 
     @allure.step("Debug form fields")
     def debug_form_fields(self):

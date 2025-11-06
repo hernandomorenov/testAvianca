@@ -40,24 +40,34 @@ class SelectFlightPage(BasePage):
     
     @allure.step("Select basic fare")
     def select_basic_fare(self):
-        """Seleccionar tarifa Basic"""
+        """Seleccionar tarifa Basic - VERSIÓN MEJORADA"""
         try:
             print("💰 Buscando tarifa Basic...")
+            
+            # Selectores más específicos y robustos
             fare_selectors = [
-                "//*[contains(text(), 'Basic')]",
-                "//*[contains(text(), 'BASIC')]",
-                "//*[contains(text(), 'Básico')]",
-                "//input[@value='basic']",
+                # 1. Botón o div con texto "Basic" o "Básico" y una clase de tarifa/vuelo
+                "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'basic') or contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'básico')]",
+                "//div[contains(@class, 'fare') and contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'basic')]",
+                "//div[contains(@class, 'fare')]//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'basic')]",
+                
+                # 2. Selector original (por si acaso)
+                "//button[contains(@class, 'fare_button') and contains(., 'Basic')]",
+                "//div[contains(@class, 'fare_button') and contains(., 'Basic')]",
                 "//button[contains(., 'Basic')]"
             ]
             
             for selector in fare_selectors:
-                if self.click_element((By.XPATH, selector)):
-                    print("✅ Tarifa Basic seleccionada")
-                    time.sleep(2)
-                    return True
+                elements = self.driver.find_elements(By.XPATH, selector)
+                for element in elements:
+                    if element.is_displayed() and element.is_enabled():
+                        # Intentar clic seguro con scroll
+                        if self.click_element((By.XPATH, selector)): 
+                            print(f"✅ Tarifa Basic seleccionada con selector: {selector}")
+                            time.sleep(2)
+                            return True
             
-            print("⚠️ No se pudo seleccionar tarifa Basic, continuando...")
+            print("⚠️ No se pudo seleccionar tarifa Basic específica, continuando...")
             return True
         except Exception as e:
             print(f"❌ Error seleccionando tarifa Basic: {e}")
@@ -65,9 +75,32 @@ class SelectFlightPage(BasePage):
     
     @allure.step("Select departure flight")
     def select_departure_flight(self):
-        """Seleccionar vuelo de ida"""
+        """Seleccionar vuelo de ida - VERSIÓN MEJORADA"""
         try:
             print("✈️ Seleccionando vuelo de ida...")
+            
+            # PRIMERO: Intentar seleccionar con fare_button
+            fare_button_selectors = [
+                "//button[contains(@class, 'fare_button')]",
+                "//div[contains(@class, 'fare_button')]",
+                "//button[contains(@class, 'select-flight')]"
+            ]
+            
+            for selector in fare_button_selectors:
+                elements = self.driver.find_elements(By.XPATH, selector)
+                for element in elements:
+                    if element.is_displayed() and element.is_enabled():
+                        try:
+                            print(f"✅ Encontrado fare_button: {element.text}")
+                            element.click()
+                            print("✅ Vuelo seleccionado con fare_button")
+                            time.sleep(2)
+                            return True
+                        except Exception as e:
+                            print(f"⚠️ Error haciendo clic en fare_button: {e}")
+                            continue
+            
+            # SEGUNDO: Métodos alternativos si no encuentra fare_button
             flight_selectors = [
                 "//button[contains(., 'Seleccionar')]",
                 "//button[contains(., 'Select')]",
@@ -125,8 +158,8 @@ class SelectFlightPage(BasePage):
             continue_selectors = [
                 "//button[contains(., 'Continuar')]",
                 "//button[contains(., 'Continue')]",
-                "//button[contains(., 'Siguiente')]",
-                "//button[contains(., 'Next')]",
+                "//button[contains(., 'Select')]",
+                "//button[contains(., 'Seleccionar')]",
                 "//a[contains(., 'Continuar')]",
                 "//input[@type='submit']"
             ]

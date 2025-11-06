@@ -101,8 +101,8 @@ class SeatmapPage(BasePage):
             continue_selectors = [
                 "//button[contains(., 'Continuar')]",
                 "//button[contains(., 'Continue')]",
-                "//button[contains(., 'Siguiente')]",
-                "//button[contains(., 'Next')]",
+                "//button[contains(., 'Select')]",
+                "//button[contains(., 'Seleccionar')]",
                 "//a[contains(., 'Continuar')]",
                 "//button[contains(., 'Pagar')]",
                 "//button[contains(., 'Pay')]"

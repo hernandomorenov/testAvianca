@@ -59,7 +59,7 @@ class TestCasoAutomatizado2:
                 assert home_page.set_dates(tomorrow, day_after), "❌ No se pudo configurar fechas"
                 
                 # Configurar pasajeros
-                assert home_page.set_passengers(adults=1, youth=1, children=1, infants=1), "❌ No se pudo configurar pasajeros"
+                assert home_page.set_passengers(adults=1, youths=1, children=1, infants=1), "❌ No se pudo configurar pasajeros"
                 
                 # Buscar vuelos
                 assert home_page.search_flights(), "❌ No se pudo buscar vuelos"

@@ -38,7 +38,7 @@ class PassengersPage(BasePage):
             return False
     
     @allure.step("Fill all passengers information")
-    def fill_all_passengers(self, adults=1, youth=0, children=0, infants=0):
+    def fill_all_passengers(self, adults=1, youth=0, children=0, infants=0):  # <-- minúsculas
         """Llenar información de todos los pasajeros"""
         try:
             print(f"📝 Llenando información para {adults} adultos, {youth} jóvenes, {children} niños, {infants} infantes...")
@@ -114,10 +114,8 @@ class PassengersPage(BasePage):
         try:
             print("➡️ Continuando a servicios...")
             continue_selectors = [
-                "//button[contains(., 'Continuar')]",
-                "//button[contains(., 'Continue')]",
-                "//button[contains(., 'Siguiente')]",
-                "//button[contains(., 'Next')]",
+                "//button[contains(., 'Seleccionar')]",
+                "//button[contains(., 'Select')]",
                 "//a[contains(., 'Continuar')]"
             ]
             
