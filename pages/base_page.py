@@ -7,14 +7,21 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import allure
 import time
 import os
+import logging
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 
 class BasePage:
     """Clase base para todos los Page Objects"""
-    
+
     def __init__(self, driver):
         self.driver = driver
         self.wait = WebDriverWait(driver, 10)
+        #Mejora de tiempos de respuesta
+        self.short_wait = WebDriverWait(driver, 5)
+        self.long_wait = WebDriverWait(driver, 20)
     
     # ========================================================================
     # MÉTODOS BÁSICOS DE SELENIUM
@@ -22,22 +29,26 @@ class BasePage:
     
     @allure.step("Navigate to: {url}")
     def navigate_to(self, url):
-     """Navegar a una URL"""
-     try:
-        self.driver.get(url)
-        print(f"🌐 Navegando a: {url}")
-        
-        # Esperar a que la página cargue
-        if self.wait_for_page_load():
-            print(f"✅ Página cargada exitosamente: {url}")
-            return True
-        else:
-            print(f"⚠️ Página cargada pero timeout en espera: {url}")
-            return True  # Continuar aunque el timeout falle
-            
-     except Exception as e:
-        print(f"❌ Error navegando a {url}: {e}")
-        return False
+        """Navegar a una URL"""
+        try:
+            self.driver.get(url)
+            logger.info(f"Navegando a: {url}")
+            print(f"🌐 Navegando a: {url}")
+
+            # Esperar a que la página cargue (optimizado)
+            if self.wait_for_page_load(timeout=15):
+                logger.info(f"Página cargada exitosamente: {url}")
+                print(f"✅ Página cargada exitosamente: {url}")
+                return True
+            else:
+                logger.warning(f"Timeout esperando carga, pero continuando: {url}")
+                print(f"⚠️ Página cargada pero timeout en espera: {url}")
+                return True  # Continuar aunque el timeout falle
+
+        except Exception as e:
+            logger.error(f"Error navegando a {url}: {e}")
+            print(f"❌ Error navegando a {url}: {e}")
+            return False
        
     
     @allure.step("Get current URL")
@@ -65,11 +76,12 @@ class BasePage:
         """Esperar a que un elemento esté presente y visible"""
         try:
             wait = WebDriverWait(self.driver, timeout)
-            element = wait.until(EC.presence_of_element_located(locator))
             element = wait.until(EC.visibility_of_element_located(locator))
+            logger.debug(f"Elemento encontrado: {locator}")
             print(f"✅ Elemento encontrado: {locator}")
             return element
         except TimeoutException:
+            logger.warning(f"Timeout esperando elemento: {locator}")
             print(f"❌ Timeout esperando elemento: {locator}")
             return None
     
@@ -79,22 +91,26 @@ class BasePage:
         try:
             wait = WebDriverWait(self.driver, timeout)
             element = wait.until(EC.element_to_be_clickable(locator))
+            logger.debug(f"Elemento clickeable: {locator}")
             print(f"✅ Elemento clickeable: {locator}")
             return element
         except TimeoutException:
+            logger.warning(f"Timeout esperando elemento clickeable: {locator}")
             print(f"❌ Timeout esperando elemento clickeable: {locator}")
             return None
     
     @allure.step("Wait for page to load")
-    def wait_for_page_load(self, timeout=30):
-        """Esperar a que la página cargue completamente"""
+    def wait_for_page_load(self, timeout=15):
+        """Esperar a que la página cargue completamente (optimizado)"""
         try:
             WebDriverWait(self.driver, timeout).until(
                 lambda driver: driver.execute_script("return document.readyState") == "complete"
             )
+            logger.debug("Página cargada completamente")
             print("✅ Página cargada completamente")
             return True
         except TimeoutException:
+            logger.warning("Timeout esperando carga de página")
             print("❌ Timeout esperando carga de página")
             return False
     
@@ -103,19 +119,25 @@ class BasePage:
     # ========================================================================
     
     @allure.step("Click element: {locator}")
-    def click_element(self, locator):
-        """Hacer clic en un elemento"""
-        element = self.wait_for_element(locator)
-        if element:
-            try:
-                element.click()
-                print(f"✅ Clic en elemento: {locator}")
-                return True
-            except:
-                # Intentar con JavaScript
-                self.driver.execute_script("arguments[0].click();", element)
-                return True
-        return False
+    def click_element(self, locator, timeout=10):
+        """Hacer clic en un elemento (optimizado con espera clickeable)"""
+        try:
+            element = self.wait_for_element_clickable(locator, timeout)
+            if element:
+                try:
+                    element.click()
+                    logger.debug(f"Clic en elemento: {locator}")
+                    print(f"✅  Clic en elemento: {locator}")
+                    return True
+                except Exception as e:
+                    # Intentar con JavaScript como fallback
+                    logger.debug(f"Usando JavaScript click para: {locator}")
+                    self.driver.execute_script("arguments[0].click();", element)
+                    return True
+            return False
+        except Exception as e:
+            logger.error(f"Error haciendo clic en {locator}: {e}")
+            return False
     
     @allure.step("Type text: {text} in element: {locator}")
     def type_text(self, locator, text):

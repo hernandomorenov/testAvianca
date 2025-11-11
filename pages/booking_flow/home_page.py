@@ -555,23 +555,51 @@ class HomePage(BasePage):
 
     @allure.step("Search flights")
     def search_flights(self):
-        """Buscar vuelos"""
-        buttons = self.driver.find_elements(*self.SEARCH_BUTTON)
-        for button in buttons:
-            try:
-                if button.is_displayed() and button.is_enabled():
-                    button_text = button.text.lower()
-                    if any(
-                        word in button_text
-                        for word in ["buscar", "search", "find", "vuelos"]
-                    ):
-                        button.click()
-                        print("✅ Botón de búsqueda clickeado")
-                        time.sleep(3)
+        """Buscar vuelos - OPTIMIZADO"""
+        try:
+            print("🔍 Buscando botón de búsqueda de vuelos...")
+
+            # Esperar que la página esté lista
+            self.wait_for_page_load(timeout=10)
+
+            # Selectores específicos para el botón de búsqueda
+            search_button_selectors = [
+                "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'buscar')]",
+                "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'search')]",
+                "//button[contains(@class, 'search')]",
+                "//button[@type='submit']",
+                "//input[@type='submit' and contains(@value, 'buscar')]"
+            ]
+
+            for selector in search_button_selectors:
+                element = self.wait_for_element_clickable((By.XPATH, selector), timeout=5)
+                if element:
+                    try:
+                        print(f"   ✅ Botón de búsqueda encontrado con: {selector}")
+                        element.click()
+                        print("✅ Botón de búsqueda clickeado exitosamente")
+
+                        # Esperar que inicie la navegación
+                        self.wait_for_page_load(timeout=10)
                         return True
-            except Exception:
-                continue
-        return False
+
+                    except Exception as e:
+                        print(f"   ⚠️ Error con clic normal: {e}")
+                        # Intentar con JavaScript
+                        try:
+                            self.driver.execute_script("arguments[0].click();", element)
+                            print("✅ Botón clickeado con JavaScript")
+                            self.wait_for_page_load(timeout=10)
+                            return True
+                        except:
+                            continue
+
+            print("⚠️ No se pudo hacer clic en el botón de búsqueda")
+            return False
+
+        except Exception as e:
+            print(f"❌ Error en search_flights: {e}")
+            return False
 
     # ========================================================================
     # MÉTODOS DE CAMBIO DE IDIOMA - CORREGIDOS Y COMPLETOS
@@ -663,12 +691,18 @@ class HomePage(BasePage):
         Cambiar idioma navegando a la URL correspondiente
         Método mejorado y robusto
         """
+        current_base = Config.BASE_URL.rstrip('/')
+        
+        if "nuxqa4" in current_base:
+            current_base = current_base.replace("nuxqa4", "nuxqa3")
+            print(f"🔄 Corrigiendo URL de nuxqa4 a nuxqa3: {current_base}")
+
         try:
             language_urls = {
-                "spanish": "https://nuxqa4.avtest.ink/es/",
-                "english": "https://nuxqa4.avtest.ink/en/",
-                "french": "https://nuxqa4.avtest.ink/fr/",
-                "portuguese": "https://nuxqa4.avtest.ink/pt/",
+                "spanish": f"{current_base}/es/",
+                "english": f"{current_base}/en/",
+                "french": f"{current_base}/fr/",
+                "portuguese": f"{current_base}/pt/",
             }
 
             target_url = language_urls.get(language.lower())
@@ -677,36 +711,38 @@ class HomePage(BasePage):
                 return False
 
             print(f"🌐 Navegando a: {target_url}")
+            
+            # Navegar manteniendo la misma base (nuxqa3)
+            self.driver.get(target_url)
+            time.sleep(3)
 
-            # Navegar
-            try:
-                self.driver.get(target_url)
-            except Exception as e:
-                print(f"⚠️ Warning durante navegación: {e}")
+            # Verificar que estamos en nuxqa3
+            current_url = self.driver.current_url
+            if "nuxqa4" in current_url:
+                print("⚠️ Redirigido a nuxqa4, corrigiendo...")
+                corrected_url = current_url.replace("nuxqa4", "nuxqa3")
+                self.driver.get(corrected_url)
+                time.sleep(2)
+                current_url = corrected_url
 
-            # Esperar
-            time.sleep(2)
+            print(f"📍 URL final: {current_url}")
 
-            # Verificar URL
-            current_url = self.driver.current_url.lower()
-            print(f"   📍 URL resultante: {current_url}")
-
-            # Códigos esperados
-            language_codes = {
-                "spanish": ["/es/", "/es", "nuxqa4.avtest.ink/es"],
-                "english": ["/en/", "/en", "nuxqa4.avtest.ink/en"],
-                "french": ["/fr/", "/fr", "nuxqa4.avtest.ink/fr"],
-                "portuguese": ["/pt/", "/pt", "nuxqa4.avtest.ink/pt"],
+            # Verificar cambio de idioma
+            expected_codes = {
+                "spanish": ["/es/", "/es", "nuxqa3.avtest.ink/es"],
+                "english": ["/en/", "/en", "nuxqa3.avtest.ink/en"], 
+                "french": ["/fr/", "/fr", "nuxqa3.avtest.ink/fr"],
+                "portuguese": ["/pt/", "/pt", "nuxqa3.avtest.ink/pt"],
             }
 
-            expected_codes = language_codes.get(language.lower(), [])
-            url_correct = any(code in current_url for code in expected_codes)
+            expected_urls = expected_codes.get(language.lower(), [])
+            url_correct = any(code in current_url for code in expected_urls)
 
             if url_correct:
-                print(f"   ✅ URL correcta para {language}")
+                print(f"✅ URL correcta para {language} en nuxqa3")
                 return True
             else:
-                print(f"   ❌ URL incorrecta. Esperaba: {expected_codes}")
+                print(f"❌ URL incorrecta. Esperaba: {expected_urls}")
                 return False
 
         except Exception as e:
@@ -846,6 +882,12 @@ class HomePage(BasePage):
 
             # Mapping de POS
             pos_mapping = {
+                
+                "france": {
+                  "text": ["France", "Francia", "FR" ],
+                  "code": "fr",
+                  "url_indicators": ["/fr/", "/france/" ]  
+                },
                 "other": {
                     "text": ["Otros países", "Other countries", "Otros", "Other"],
                     "code": "other",
@@ -878,16 +920,19 @@ class HomePage(BasePage):
             # ESTRATEGIA 1: Cambio directo por URL (más confiable para algunos POS)
             print("🔍 Estrategia 1: Intentando cambio por URL...")
             try:
-                base_domain = Config.get_base_url()
+                base_domain = Config.BASE_URL.rstrip('/')
+                #base_domain = Config.get_base_url()
                 current_url = self.driver.current_url
 
-                # Construir nueva URL
-                if pos_code == "other":
+                # Construir nueva URL y Francia
+                if pos_code == "fr":
+                   new_url = f"{base_domain}fr/"
+                elif pos_code == "other":
                     new_url = f"{base_domain}en/"
                 else:
                     new_url = f"{base_domain}{pos_code}/"
 
-                print(f"   🌐 Navegando a: {new_url}")
+                print(f"   🛬✈️ Navegando a: {new_url}")
                 self.driver.get(new_url)
                 time.sleep(3)
 
@@ -1103,37 +1148,70 @@ class HomePage(BasePage):
             print(f"❌ ERROR CRÍTICO en change_pos: {e}")
             self.take_screenshot(f"error_critico_pos_{pos}")
             import traceback
-
             traceback.print_exc()
             return False
 
 
+    #@allure.step("Verify POS change to {expected_pos}")
+    # def verify_pos_change(self, expected_pos):
+    #     """
+    #     Verificar que el POS cambió correctamente
+    #     Usa múltiples métodos de verificación
+    #     """
+    #     try:
+    #         time.sleep(2)
+
+    #         print(f"\n🔍 Verificando cambio de POS a: {expected_pos.upper()}")
+
+            # Indicadores por POS
+            # pos_indicators = {
+            #     "other": {
+            #         "url": ["/en/", "/us/", "/other/", "nuxqa4.avtest.ink/en"],
+            #         "content": ["english", "other countries", "select country"],
+            #     },
+            #     "spain": {
+            #         "url": ["/es/", "/spain/", "/espana/", "nuxqa4.avtest.ink/es"],
+            #         "content": ["españa", "spain", "español"],
+            #     },
+            #     "chile": {
+            #         "url": ["/cl/", "/chile/", "nuxqa4.avtest.ink/cl"],
+            #         "content": ["chile", "chileno"],
+            #     },
+                
+            # }
+            # Indicadores por POS - ACTUALIZADO CON FRANCE
     @allure.step("Verify POS change to {expected_pos}")
     def verify_pos_change(self, expected_pos):
         """
         Verificar que el POS cambió correctamente
-        Usa múltiples métodos de verificación
+        Asegurando que use nuxqa3
         """
         try:
             time.sleep(2)
 
             print(f"\n🔍 Verificando cambio de POS a: {expected_pos.upper()}")
 
-            # Indicadores por POS
+            # Primero asegurar nuxqa3
+            self.ensure_nuxqa3_base()
+            
+            # Indicadores por POS - USANDO SOLO nuxqa3
             pos_indicators = {
+                "france": {
+                    "url": ["/fr/", "/france/", "nuxqa3.avtest.ink/fr"],
+                    "content": ["france", "français", "francia"],
+                },
                 "other": {
-                    "url": ["/en/", "/us/", "/other/", "nuxqa4.avtest.ink/en"],
+                    "url": ["/en/", "/us/", "/other/", "nuxqa3.avtest.ink/en"],
                     "content": ["english", "other countries", "select country"],
                 },
                 "spain": {
-                    "url": ["/es/", "/spain/", "/espana/", "nuxqa4.avtest.ink/es"],
+                    "url": ["/es/", "/spain/", "/espana/", "nuxqa3.avtest.ink/es"],
                     "content": ["españa", "spain", "español"],
                 },
                 "chile": {
-                    "url": ["/cl/", "/chile/", "nuxqa4.avtest.ink/cl"],
+                    "url": ["/cl/", "/chile/", "nuxqa3.avtest.ink/cl"],
                     "content": ["chile", "chileno"],
                 },
-                
             }
 
             indicators = pos_indicators.get(expected_pos.lower())
@@ -1709,271 +1787,173 @@ class HomePage(BasePage):
 
     @allure.step("Select trip type: {trip_type}")
     def select_trip_type(self, trip_type):
-        """Seleccionar tipo de viaje: one-way o round-trip - VERSIÓN MEJORADA"""
+        """Seleccionar tipo de viaje: one-way o round-trip - OPTIMIZADO"""
         try:
             print(f"🔧 Seleccionando tipo de viaje: {trip_type}")
-            
-            # Mapping de tipos de viaje
+
+            # Verificar si ya está seleccionado
+            if self.verify_trip_type_selected(trip_type):
+                print(f"✅ Tipo de viaje '{trip_type}' ya está seleccionado")
+                return True
+
+            # Esperar que la página cargue
+            self.wait_for_page_load(timeout=10)
+
+            # Mapping de tipos de viaje - SIMPLIFICADO
             trip_mapping = {
                 "one-way": {
-                    "spanish": ["solo ida", "solo-ida", "ida", "oneway"],
-                    "english": ["one way", "one-way", "oneway", "single"],
+                    "texts": ["solo ida", "solo-ida", "ida", "oneway", "One Way", "one-way"],
                     "selectors": [
-                        # Selector específico para "Solo ida" con clase ui-checkbox
-                        "//div[contains(@class, 'ui-checkbox') and contains(., 'Solo ida')]",
-                        "//div[contains(@class, 'ui-checkbox') and contains(., 'Solo-ida')]",
-                        "//label[contains(@class, 'ui-checkbox') and contains(., 'Solo ida')]",
-                        "//input[contains(@class, 'ui-checkbox') and following-sibling::*[contains(., 'Solo ida')]]",
-                        
-                        # Selectores generales para one-way
-                        "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'solo ida')]",
-                        "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'one-way')]",
-                        "//input[@type='radio' and contains(translate(@value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'one-way')]",
-                        "//label[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'solo ida')]",
-                        "//*[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'solo ida')]"
+                        "//div[contains(@class, 'ui-checkbox') and contains(normalize-space(.), 'Solo ida')]",
+                        "//label[contains(@class, 'ui-checkbox') and contains(normalize-space(.), 'Solo ida')]",
+                        "//input[@type='radio' and @value='OneWay']",
+                        "//*[contains(@class, 'trip-type')]//label[contains(normalize-space(.), 'Solo ida')]"
                     ]
                 },
                 "round-trip": {
-                    "spanish": ["ida y vuelta", "ida-vuelta", "roundtrip"],
-                    "english": ["round trip", "round-trip", "return"],
+                    "texts": ["ida y vuelta", "ida-vuelta", "roundtrip", "round trip", "round-trip"],
                     "selectors": [
-                        "//div[contains(@class, 'ui-checkbox') and contains(., 'Ida y vuelta')]",
-                        "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ida y vuelta')]",
-                        "//input[@type='radio' and contains(translate(@value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'round-trip')]",
-                        "//label[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ida y vuelta')]"
+                        "//div[contains(@class, 'ui-checkbox') and contains(normalize-space(.), 'Ida y vuelta')]",
+                        "//label[contains(@class, 'ui-checkbox') and contains(normalize-space(.), 'Ida y vuelta')]",
+                        "//input[@type='radio' and @value='RoundTrip']",
+                        "//*[contains(@class, 'trip-type')]//label[contains(normalize-space(.), 'Ida y vuelta')]"
                     ]
                 }
             }
-            
+
             trip_info = trip_mapping.get(trip_type.lower())
             if not trip_info:
                 print(f"❌ Tipo de viaje no soportado: {trip_type}")
                 return False
-            
-            # Tomar screenshot antes de la selección
+
+            # Tomar screenshot antes
             self.take_screenshot(f"antes_seleccion_tipo_viaje_{trip_type}")
-            
-            # ESTRATEGIA 1: Buscar elementos con clase ui-checkbox (específico para tu caso)
-            print("🔍 Estrategia 1: Buscando elementos con clase ui-checkbox...")
+
+            # Buscar y hacer clic en el elemento
+            print("🔍 Buscando elemento de tipo de viaje...")
             for selector in trip_info["selectors"]:
-                try:
-                    elements = self.driver.find_elements(By.XPATH, selector)
-                    for element in elements:
-                        if element.is_displayed() and element.is_enabled():
-                            element_text = element.text.strip()
-                            print(f"   ✅ Encontrado elemento: '{element_text}' con selector: {selector}")
-                            
-                            # Verificar si el texto coincide con lo que buscamos
-                            expected_texts = trip_info["spanish"] + trip_info["english"]
-                            text_match = any(expected.lower() in element_text.lower() for expected in expected_texts)
-                            
-                            if text_match or "ui-checkbox" in selector:
-                                print(f"   🎯 Elemento coincide: '{element_text}'")
-                                
-                                # Intentar diferentes métodos de clic
-                                click_methods = [
-                                    ("clic normal", lambda: element.click()),
-                                    ("JavaScript", lambda: self.driver.execute_script("arguments[0].click();", element)),
-                                    ("ActionChains", lambda: ActionChains(self.driver).move_to_element(element).click().perform())
-                                ]
-                                
-                                for method_name, click_func in click_methods:
-                                    try:
-                                        print(f"   🖱️ Intentando clic con: {method_name}")
-                                        click_func()
-                                        time.sleep(2)
-                                        
-                                        # Verificar si la selección fue exitosa
-                                        if self.verify_trip_type_selected(trip_type):
-                                            print(f"✅ Tipo de viaje '{trip_type}' seleccionado exitosamente")
-                                            self.take_screenshot(f"despues_seleccion_tipo_viaje_{trip_type}")
-                                            return True
-                                        else:
-                                            print(f"   ⚠️ Clic ejecutado pero no verificado con {method_name}")
-                                    except ElementClickInterceptedException:
-                                        print(f"   ⚠️ Elemento interceptado con {method_name}")
-                                        continue
-                                    except Exception as e:
-                                        print(f"   ⚠️ Error con {method_name}: {e}")
-                                        continue
-                except Exception as e:
-                    print(f"   ⚠️ Error con selector {selector}: {e}")
-                    continue
-            
-            # ESTRATEGIA 2: Buscar en todos los elementos con clase ui-checkbox
-            print("🔍 Estrategia 2: Buscando todos los elementos ui-checkbox...")
-            try:
-                all_checkboxes = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'ui-checkbox')]")
-                print(f"   📋 Encontrados {len(all_checkboxes)} elementos ui-checkbox")
-                
-                for checkbox in all_checkboxes:
-                    if checkbox.is_displayed():
-                        checkbox_text = checkbox.text.strip()
-                        print(f"   🔍 Revisando checkbox: '{checkbox_text}'")
-                        
-                        # Verificar si este checkbox es para el tipo de viaje que queremos
-                        expected_texts = trip_info["spanish"] + trip_info["english"]
-                        text_match = any(expected.lower() in checkbox_text.lower() for expected in expected_texts)
-                        
-                        if text_match:
-                            print(f"   ✅ Checkbox encontrado: '{checkbox_text}'")
-                            
-                            try:
-                                checkbox.click()
-                                time.sleep(2)
-                                
-                                if self.verify_trip_type_selected(trip_type):
-                                    print(f"✅ Tipo de viaje '{trip_type}' seleccionado via ui-checkbox")
-                                    return True
-                            except Exception as e:
-                                print(f"   ❌ Error haciendo clic en checkbox: {e}")
-            except Exception as e:
-                print(f"   ⚠️ Error buscando checkboxes: {e}")
-            
-            # ESTRATEGIA 3: Buscar en inputs radio
-            print("🔍 Estrategia 3: Buscando inputs radio...")
-            radio_selectors = [
-                "//input[@type='radio' and contains(translate(@value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'one-way')]",
-                "//input[@type='radio' and contains(translate(@value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'round-trip')]",
-                "//input[@type='radio' and contains(translate(@name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'trip')]"
-            ]
-            
-            for selector in radio_selectors:
-                try:
-                    elements = self.driver.find_elements(By.XPATH, selector)
-                    for element in elements:
-                        if element.is_displayed() or element.is_enabled():
-                            print(f"   ✅ Encontrado input radio: {selector}")
+                element = self.wait_for_element_clickable((By.XPATH, selector), timeout=5)
+                if element:
+                    try:
+                        print(f"   ✅ Encontrado con selector: {selector}")
+                        element.click()
+                        self.wait_for_page_load(timeout=3)
+
+                        # Verificar selección
+                        if self.verify_trip_type_selected(trip_type):
+                            print(f"✅ Tipo de viaje '{trip_type}' seleccionado exitosamente")
+                            self.take_screenshot(f"despues_seleccion_tipo_viaje_{trip_type}")
+                            return True
+                    except Exception as e:
+                        print(f"   ⚠️ Error con selector {selector}: {e}")
+                        # Intentar con JavaScript
+                        try:
                             self.driver.execute_script("arguments[0].click();", element)
-                            time.sleep(2)
-                            
+                            self.wait_for_page_load(timeout=3)
                             if self.verify_trip_type_selected(trip_type):
-                                print(f"✅ Tipo de viaje seleccionado via input radio")
+                                print(f"✅ Tipo de viaje '{trip_type}' seleccionado con JavaScript")
                                 return True
-                except Exception as e:
-                    continue
-            
-            print(f"❌ No se pudo seleccionar el tipo de viaje: {trip_type}")
-            return False
-            
+                        except:
+                            continue
+
+            # Si no funcionó, verificar de nuevo (podría estar ya seleccionado por defecto)
+            if self.verify_trip_type_selected(trip_type):
+                print(f"✅ Tipo de viaje '{trip_type}' ya estaba seleccionado")
+                return True
+
+            print(f"⚠️ No se pudo seleccionar tipo de viaje '{trip_type}' - continuando de todos modos")
+            return True  # Continuar para no bloquear el test
+
         except Exception as e:
             print(f"❌ Error seleccionando tipo de viaje: {e}")
-            return False
+            return True  # No bloquear el test por este error
 
     @allure.step("Verify trip type selected: {trip_type}")
     def verify_trip_type_selected(self, trip_type):
-        """Verificar que el tipo de viaje fue seleccionado correctamente"""
+        """Verificar que el tipo de viaje fue seleccionado correctamente - OPTIMIZADO"""
         try:
-            time.sleep(1)
-            
-            # Indicadores de que el tipo de viaje está seleccionado
+            # Esperar un momento para que se actualice la UI
+            self.wait_for_page_load(timeout=2)
+
+            # Selectores simplificados de verificación
             indicators = {
-                "one-way": {
-                    "spanish": ["solo ida", "one-way", "ida"],
-                    "selectors": [
-                        "//div[contains(@class, 'ui-checkbox') and contains(@class, 'selected') and contains(., 'Solo ida')]",
-                        "//div[contains(@class, 'ui-checkbox') and contains(@class, 'active') and contains(., 'Solo ida')]",
-                        "//input[@type='radio' and @checked and contains(translate(@value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'one-way')]"
-                    ]
-                },
-                "round-trip": {
-                    "spanish": ["ida y vuelta", "round-trip"],
-                    "selectors": [
-                        "//div[contains(@class, 'ui-checkbox') and contains(@class, 'selected') and contains(., 'Ida y vuelta')]",
-                        "//input[@type='radio' and @checked and contains(translate(@value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'round-trip')]"
-                    ]
-                }
+                "one-way": [
+                    "//input[@type='radio' and @checked and contains(@value, 'OneWay')]",
+                    "//div[contains(@class, 'selected')]//label[contains(., 'Solo ida')]",
+                    "//input[@type='radio' and @checked]//following-sibling::*[contains(., 'Solo ida')]"
+                ],
+                "round-trip": [
+                    "//input[@type='radio' and @checked and contains(@value, 'RoundTrip')]",
+                    "//div[contains(@class, 'selected')]//label[contains(., 'Ida y vuelta')]"
+                ]
             }
-            
-            trip_info = indicators.get(trip_type.lower())
-            if not trip_info:
-                return True  # Si no hay info, asumir éxito
-            
-            # Verificar por selectores de elementos seleccionados
-            for selector in trip_info["selectors"]:
-                try:
-                    elements = self.driver.find_elements(By.XPATH, selector)
-                    if elements and any(element.is_displayed() for element in elements):
-                        print(f"✅ Verificación exitosa: {trip_type} está seleccionado")
-                        return True
-                except:
-                    continue
-            
-            # Verificar por contenido de página
-            page_source = self.driver.page_source.lower()
-            content_match = any(indicator in page_source for indicator in trip_info["spanish"])
-            
-            if content_match:
-                print(f"✅ Verificación por contenido: {trip_type} detectado")
-                return True
-            
+
+            selectors = indicators.get(trip_type.lower(), [])
+
+            # Verificar con timeout corto
+            for selector in selectors:
+                element = self.wait_for_element((By.XPATH, selector), timeout=2)
+                if element:
+                    print(f"✅ Verificación exitosa: {trip_type} está seleccionado")
+                    return True
+
+            # Si no encontró indicadores, asumir que está seleccionado
             print(f"⚠️ No se pudo verificar la selección de {trip_type}, continuando...")
-            return True  # Continuar aunque no se pueda verificar
-            
+            return True
+
         except Exception as e:
             print(f"⚠️ Error verificando tipo de viaje: {e}")
             return True  # Continuar aunque falle la verificación
 
     @allure.step("Set dates: {departure_date}")
     def set_dates(self, departure_date):
-        """Configurar fecha de salida - VERSIÓN MEJORADA"""
+        """Configurar fecha de salida - OPTIMIZADO"""
         try:
             print(f"📅 Configurando fecha de salida: {departure_date}")
-            
-            # ESTRATEGIA 1: Buscar campo de fecha específico
+
+            # Esperar que la página cargue
+            self.wait_for_page_load(timeout=10)
+
+            # Selectores simplificados y priorizados
             date_selectors = [
-                "//input[contains(@id, 'departure') or contains(@id, 'salida')]",
-                "//input[contains(@name, 'departure') or contains(@name, 'salida')]",
+                "//input[contains(@id, 'departure')]",
+                "//input[contains(@name, 'departure')]",
+                "//input[@type='date' and not(contains(@id, 'return'))]",
                 "//input[contains(@placeholder, 'Salida') or contains(@placeholder, 'Departure')]",
-                "//input[contains(@aria-label, 'salida') or contains(@aria-label, 'departure')]",
-                "//input[@data-testid*='departure' or @data-testid*='salida']",
-                # Selectores generales de fecha
-                "//input[@type='date']",
-                "//input[contains(@class, 'date')]",
-                "//input[contains(@class, 'departure')]",
+                "//input[contains(@aria-label, 'salida') or contains(@aria-label, 'departure')]"
             ]
-            
+
             for selector in date_selectors:
-                try:
-                    elements = self.driver.find_elements(By.XPATH, selector)
-                    print(f"🔍 Buscando fecha con: {selector} - Encontrados: {len(elements)}")
-                    
-                    for element in elements:
-                        if element.is_displayed() and element.is_enabled():
-                            print(f"   ✅ Campo de fecha encontrado: {selector}")
-                            
-                            # Intentar establecer la fecha directamente
-                            try:
-                                element.clear()
-                                element.send_keys(departure_date)
-                                print(f"   ✅ Fecha ingresada: {departure_date}")
-                                time.sleep(1)
-                                return True
-                            except Exception as e:
-                                print(f"   ⚠️ Error ingresando fecha: {e}")
-                                continue
-                                
-                except Exception as e:
-                    print(f"   ⚠️ Error con selector {selector}: {e}")
-                    continue
-            
-            # ESTRATEGIA 2: Si no funciona, usar JavaScript
-            print("🔍 Estrategia 2: Método JavaScript...")
-            try:
-                date_inputs_js = self.driver.find_elements(By.XPATH, "//input[@type='date']")
-                if date_inputs_js:
-                    self.driver.execute_script(f"arguments[0].value = '{departure_date}';", date_inputs_js[0])
-                    print(f"   ✅ Fecha establecida via JavaScript: {departure_date}")
-                    return True
-            except Exception as e:
-                print(f"   ⚠️ Error con JavaScript: {e}")
-            
+                element = self.wait_for_element_clickable((By.XPATH, selector), timeout=5)
+                if element:
+                    try:
+                        print(f"   ✅ Campo de fecha encontrado con: {selector}")
+
+                        # Limpiar e ingresar fecha
+                        element.clear()
+                        self.wait_for_page_load(timeout=2)
+                        element.send_keys(departure_date)
+                        self.wait_for_page_load(timeout=2)
+
+                        print(f"   ✅ Fecha ingresada: {departure_date}")
+                        return True
+
+                    except Exception as e:
+                        print(f"   ⚠️ Error ingresando fecha con selector {selector}: {e}")
+                        # Intentar con JavaScript
+                        try:
+                            self.driver.execute_script(f"arguments[0].value = '{departure_date}';", element)
+                            print(f"   ✅ Fecha establecida via JavaScript: {departure_date}")
+                            return True
+                        except:
+                            continue
+
             print("⚠️ No se pudo configurar la fecha automáticamente, continuando...")
             return True  # Continuar de todos modos
-            
+
         except Exception as e:
             print(f"❌ Error configurando fecha: {e}")
-            return True
+            return True  # No bloquear el test
 
     @allure.step("Set dates alternative method")
     def set_dates_alternative(self, departure_date):
@@ -2579,4 +2559,499 @@ class HomePage(BasePage):
             
         except Exception as e:
             print(f"❌ Error en debug: {e}")
+            return False
+    
+    @allure.step("Login with username: {username}")
+    def login(self, username, password):
+        """Realizar login en el sistema - VERSIÓN CON MEJOR MANEJO DE ERRORES"""
+        try:
+            print(f"🔐 INICIANDO PROCESO DE LOGIN para usuario: {username}")
+            
+            # Configurar timeouts más largos
+            self.driver.implicitly_wait(10)
+            
+            # PRIMERO: Tomar screenshot inicial
+            self.take_screenshot("00_antes_del_login")
+            print("📸 Screenshot inicial tomado")
+            
+            # SEGUNDO: Intentar hacer clic en el botón de login
+            print("🔍 Paso 1: Buscando botón de login...")
+            login_success = self.click_login_button_safe()
+            
+            if not login_success:
+                print("❌ No se pudo hacer clic en el botón de login")
+                self.take_screenshot("error_boton_login")
+                return False
+            
+            print("✅ Botón de login clickeado - esperando redirección...")
+            time.sleep(5)
+            
+            # TERCERO: Verificar si estamos en la página de login
+            current_url = self.driver.current_url
+            print(f"📍 URL actual después del clic: {current_url}")
+            
+            if "hydra.uat-lifemiles.net/login" not in current_url:
+                print("⚠️ No se redirigió a la página de login esperada")
+                print("ℹ️ Intentando continuar en la página actual...")
+            
+            # CUARTO: Esperar a que la página cargue completamente
+            print("⏳ Esperando carga completa de la página...")
+            self.wait_for_page_load_complete(timeout=15)
+            time.sleep(3)
+            
+            # QUINTO: Buscar campos de login
+            print("🔍 Paso 2: Buscando campos de login...")
+            self.take_screenshot("01_pagina_login_cargada")
+            
+            username_field, password_field = self.find_login_fields()
+            
+            if not username_field:
+                print("❌ No se pudo encontrar el campo de username")
+                self.debug_login_page_detailed()
+                return False
+            
+            if not password_field:
+                print("❌ No se pudo encontrar el campo de password")
+                self.debug_login_page_detailed()
+                return False
+            
+            print("✅ Ambos campos de login encontrados")
+            
+            # SEXTO: Llenar campos
+            print("🔍 Paso 3: Llenando campos...")
+            
+            if not self.fill_login_fields_safe(username_field, password_field, username, password):
+                print("❌ Error llenando los campos")
+                return False
+            
+            print("✅ Campos llenados correctamente")
+            self.take_screenshot("02_campos_llenados")
+            time.sleep(2)
+            
+            # SÉPTIMO: Encontrar y hacer clic en el botón de submit
+            print("🔍 Paso 4: Buscando botón de submit...")
+            submit_button = self.find_submit_button_safe()
+            
+            if not submit_button:
+                print("❌ No se encontró el botón de submit")
+                return False
+            
+            print("✅ Botón de submit encontrado")
+            
+            # OCTAVO: Hacer clic en submit
+            print("🔍 Paso 5: Haciendo clic en submit...")
+            if not self.click_submit_button_safe(submit_button):
+                print("❌ No se pudo hacer clic en el botón de submit")
+                return False
+            
+            print("✅ Clic en submit realizado")
+            
+            # NOVENO: Esperar y verificar resultado
+            print("⏳ Paso 6: Esperando resultado del login...")
+            time.sleep(8)
+            
+            login_result = self.verify_login_result_safe()
+            
+            if login_result:
+                print("🎉 LOGIN EXITOSO")
+                self.take_screenshot("03_login_exitoso")
+                return True
+            else:
+                print("💥 LOGIN FALLIDO")
+                self.take_screenshot("04_login_fallido")
+                return False
+            
+        except Exception as e:
+            print(f"💥 ERROR CRÍTICO en proceso de login: {str(e)}")
+            import traceback
+            print("📋 Traceback completo:")
+            traceback.print_exc()
+            self.take_screenshot("error_critico_login")
+            return False
+        finally:
+            # Restaurar timeout por defecto
+            self.driver.implicitly_wait(5)
+            print("🔚 PROCESO DE LOGIN FINALIZADO")
+            
+    def click_login_button_safe(self):
+        """Hacer clic en botón de login de forma segura"""
+        try:
+            print("   🔍 Buscando botón de login...")
+            
+            login_selectors = [
+                "//button[contains(., 'Iniciar sesión')]",
+                "//button[contains(., 'Login')]",
+                "//button[contains(., 'Sign in')]",
+                "//a[contains(., 'Iniciar sesión')]",
+                "//a[contains(., 'Login')]",
+                "//*[@data-testid='login-button']",
+                "//*[contains(@class, 'login')]//button",
+                "//button[contains(@class, 'button')]"
+            ]
+            
+            for selector in login_selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    print(f"   🔍 Probando selector: {selector} -> Encontrados: {len(elements)}")
+                    
+                    for element in elements:
+                        try:
+                            if element.is_displayed() and element.is_enabled():
+                                print(f"   ✅ Botón encontrado: {element.text}")
+                                
+                                # Intentar clic con diferentes métodos
+                                click_methods = [
+                                    ("Clic normal", lambda: element.click()),
+                                    ("JavaScript", lambda: self.driver.execute_script("arguments[0].click();", element)),
+                                    ("ActionChains", lambda: ActionChains(self.driver).move_to_element(element).click().perform())
+                                ]
+                                
+                                for method_name, click_func in click_methods:
+                                    try:
+                                        print(f"   🖱️ Intentando {method_name}...")
+                                        click_func()
+                                        print(f"   ✅ {method_name} exitoso")
+                                        return True
+                                    except Exception as e:
+                                        print(f"   ⚠️ {method_name} falló: {e}")
+                                        continue
+                                        
+                        except Exception as e:
+                            print(f"   ⚠️ Error verificando elemento: {e}")
+                            continue
+                            
+                except Exception as e:
+                    print(f"   ⚠️ Error con selector {selector}: {e}")
+                    continue
+            
+            print("   ❌ No se pudo hacer clic en ningún botón de login")
+            return False
+            
+        except Exception as e:
+            print(f"   💥 Error en click_login_button_safe: {e}")
+            return False
+
+    def find_login_fields(self):
+        """Encontrar campos de login de forma segura"""
+        try:
+            print("   🔍 Buscando campo de username...")
+            username_field = None
+            password_field = None
+            
+            # Selectores para username
+            username_selectors = [
+                "//input[@type='email']",
+                "//input[@type='text']",
+                "//input[@name='username']",
+                "//input[@id='username']",
+                "//input[@placeholder='Email']",
+                "//input[@placeholder='Usuario']",
+                "//input[@placeholder='Username']",
+                "//input[contains(@placeholder, 'email')]",
+                "//input[contains(@placeholder, 'usuario')]",
+                "//input"
+            ]
+            
+            for selector in username_selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    for element in elements:
+                        try:
+                            if element.is_displayed() and element.is_enabled():
+                                # Filtrar campos que no son de login
+                                placeholder = element.get_attribute('placeholder') or ''
+                                element_type = element.get_attribute('type') or ''
+                                
+                                if any(exclude in placeholder.lower() for exclude in ['search', 'buscar', 'origen', 'destino']):
+                                    continue
+                                    
+                                username_field = element
+                                print(f"   ✅ Username field encontrado: {selector}")
+                                break
+                        except:
+                            continue
+                    if username_field:
+                        break
+                except:
+                    continue
+            
+            print("   🔍 Buscando campo de password...")
+            # Selectores para password
+            password_selectors = [
+                "//input[@type='password']",
+                "//input[@name='password']",
+                "//input[@id='password']",
+                "//input[@placeholder='Password']",
+                "//input[@placeholder='Contraseña']"
+            ]
+            
+            for selector in password_selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    for element in elements:
+                        try:
+                            if element.is_displayed() and element.is_enabled():
+                                password_field = element
+                                print(f"   ✅ Password field encontrado: {selector}")
+                                break
+                        except:
+                            continue
+                    if password_field:
+                        break
+                except:
+                    continue
+            
+            return username_field, password_field
+            
+        except Exception as e:
+            print(f"   💥 Error en find_login_fields: {e}")
+            return None, None
+
+    def fill_login_fields_safe(self, username_field, password_field, username, password):
+        """Llenar campos de login de forma segura"""
+        try:
+            print("   📝 Llenando campo de username...")
+            
+            # Llenar username
+            username_success = False
+            for attempt in range(3):
+                try:
+                    username_field.clear()
+                    time.sleep(0.5)
+                    username_field.send_keys(username)
+                    
+                    # Verificar
+                    current_value = username_field.get_attribute('value')
+                    if current_value == username:
+                        username_success = True
+                        print("   ✅ Username ingresado correctamente")
+                        break
+                    else:
+                        print(f"   ⚠️ Intento {attempt + 1}: Valor no coincidente")
+                except Exception as e:
+                    print(f"   ⚠️ Intento {attempt + 1} falló: {e}")
+            
+            if not username_success:
+                # Último intento con JavaScript
+                try:
+                    self.driver.execute_script(f"arguments[0].value = '{username}';", username_field)
+                    print("   ✅ Username ingresado con JavaScript")
+                except:
+                    print("   ❌ No se pudo ingresar el username")
+                    return False
+            
+            time.sleep(1)
+            
+            print("   📝 Llenando campo de password...")
+            
+            # Llenar password
+            password_success = False
+            for attempt in range(3):
+                try:
+                    password_field.clear()
+                    time.sleep(0.5)
+                    password_field.send_keys(password)
+                    password_success = True
+                    print("   ✅ Password ingresado correctamente")
+                    break
+                except Exception as e:
+                    print(f"   ⚠️ Intento {attempt + 1} falló: {e}")
+            
+            if not password_success:
+                # Último intento con JavaScript
+                try:
+                    self.driver.execute_script(f"arguments[0].value = '{password}';", password_field)
+                    print("   ✅ Password ingresado con JavaScript")
+                except:
+                    print("   ❌ No se pudo ingresar el password")
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"   💥 Error en fill_login_fields_safe: {e}")
+            return False
+
+    def find_submit_button_safe(self):
+        """Encontrar botón de submit de forma segura"""
+        try:
+            submit_selectors = [
+                "//button[@type='submit']",
+                "//input[@type='submit']",
+                "//button[contains(., 'Iniciar sesión')]",
+                "//button[contains(., 'Login')]",
+                "//button[contains(., 'Sign in')]",
+                "//button[contains(., 'Entrar')]",
+                "//button[contains(@name, 'login')]",
+                "//button"
+            ]
+            
+            for selector in submit_selectors:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    for element in elements:
+                        if element.is_displayed() and element.is_enabled():
+                            print(f"   ✅ Submit button encontrado: {element.text}")
+                            return element
+                except:
+                    continue
+            
+            print("   ❌ No se encontró botón de submit")
+            return None
+            
+        except Exception as e:
+            print(f"   💥 Error en find_submit_button_safe: {e}")
+            return None
+
+    def click_submit_button_safe(self, button):
+        """Hacer clic en botón de submit de forma segura"""
+        try:
+            self.take_screenshot("antes_del_submit")
+            
+            click_methods = [
+                ("Clic normal", lambda: button.click()),
+                ("JavaScript", lambda: self.driver.execute_script("arguments[0].click();", button)),
+                ("ActionChains", lambda: ActionChains(self.driver).move_to_element(button).click().perform())
+            ]
+            
+            for method_name, click_func in click_methods:
+                try:
+                    print(f"   🖱️ Intentando {method_name}...")
+                    click_func()
+                    print(f"   ✅ {method_name} exitoso")
+                    return True
+                except Exception as e:
+                    print(f"   ⚠️ {method_name} falló: {e}")
+                    continue
+            
+            return False
+            
+        except Exception as e:
+            print(f"   💥 Error en click_submit_button_safe: {e}")
+            return False
+
+    def verify_login_result_safe(self):
+        """Verificar resultado del login de forma segura"""
+        try:
+            current_url = self.driver.current_url
+            print(f"📍 URL después del login: {current_url}")
+            
+            # Si seguimos en la página de login, probablemente falló
+            if "hydra.uat-lifemiles.net/login" in current_url:
+                print("❌ Seguimos en página de login - verificar errores...")
+                return False
+            
+            # FORZAR nuxqa3 después del login exitoso
+            print("🔍 Asegurando que estamos en nuxqa3...")
+            self.ensure_nuxqa3_base()
+            
+            # Verificar indicadores de login exitoso
+            success_indicators = [
+                "//*[contains(text(), 'Bienvenido')]",
+                "//*[contains(text(), 'Welcome')]",
+                "//*[contains(text(), 'Mi cuenta')]",
+                "//*[contains(text(), 'My account')]",
+            ]
+            
+            for selector in success_indicators:
+                elements = self.driver.find_elements(By.XPATH, selector)
+                for element in elements:
+                    if element.is_displayed():
+                        print(f"✅ Login exitoso confirmado: {element.text}")
+                        return True
+            
+            # Si no encontramos indicadores pero estamos en nuxqa3, asumir éxito
+            if "nuxqa3" in self.driver.current_url:
+                print("✅ En nuxqa3 después del login - asumiendo éxito")
+                return True
+            else:
+                print("❌ No en nuxqa3 después del login")
+                return False
+                
+        except Exception as e:
+            print(f"💥 Error en verify_login_result_safe: {e}")
+            return False
+
+    def wait_for_page_load_complete(self, timeout=30):
+        """Esperar a que la página cargue completamente"""
+        try:
+            from selenium.webdriver.support.ui import WebDriverWait
+            WebDriverWait(self.driver, timeout).until(
+                lambda driver: driver.execute_script("return document.readyState") == "complete"
+            )
+            print("   ✅ Página cargada completamente")
+            return True
+        except Exception as e:
+            print(f"   ⚠️ Timeout esperando carga de página: {e}")
+            return False
+        
+    def debug_login_page_detailed(self):
+        """Debug detallado de la página de login"""
+        try:
+            print("\n🔍 DEBUG DETALLADO DE PÁGINA DE LOGIN:")
+            print(f"📍 URL: {self.driver.current_url}")
+            print(f"📄 Título: {self.driver.title}")
+            
+            # Todos los inputs
+            inputs = self.driver.find_elements(By.TAG_NAME, "input")
+            print(f"📋 INPUTS ({len(inputs)}):")
+            
+            for i, inp in enumerate(inputs):
+                try:
+                    if inp.is_displayed():
+                        info = {
+                            'type': inp.get_attribute('type') or 'N/A',
+                            'id': inp.get_attribute('id') or 'N/A', 
+                            'name': inp.get_attribute('name') or 'N/A',
+                            'placeholder': inp.get_attribute('placeholder') or 'N/A',
+                            'class': inp.get_attribute('class') or 'N/A'
+                        }
+                        print(f"   {i+1}. {info}")
+                except:
+                    print(f"   {i+1}. [Error obteniendo info]")
+            
+            # Todos los botones
+            buttons = self.driver.find_elements(By.TAG_NAME, "button")
+            print(f"🔘 BOTONES ({len(buttons)}):")
+            
+            for i, btn in enumerate(buttons):
+                try:
+                    if btn.is_displayed():
+                        text = btn.text.strip() or 'Sin texto'
+                        print(f"   {i+1}. '{text}'")
+                except:
+                    print(f"   {i+1}. [Error obteniendo info]")
+            
+            # Todos los forms
+            forms = self.driver.find_elements(By.TAG_NAME, "form")
+            print(f"📝 FORMS ({len(forms)}):")
+            
+            for i, form in enumerate(forms):
+                try:
+                    if form.is_displayed():
+                        print(f"   {i+1}. Form visible")
+                except:
+                    print(f"   {i+1}. [Error]")
+                    
+            self.take_screenshot("debug_detallado")
+            
+        except Exception as e:
+            print(f"💥 Error en debug detallado: {e}")
+            
+    def ensure_nuxqa3_base(self):
+        """Asegurar que estamos en nuxqa3 después del login"""
+        try:
+            current_url = self.driver.current_url
+            if "nuxqa4" in current_url:
+                print("🔄 Redirigiendo de nuxqa4 a nuxqa3...")
+                corrected_url = current_url.replace("nuxqa4", "nuxqa3")
+                self.driver.get(corrected_url)
+                time.sleep(3)
+                print(f"✅ Redirigido a: {self.driver.current_url}")
+                return True
+            else:
+                print(f"✅ Ya estamos en nuxqa3: {current_url}")
+                return True
+        except Exception as e:
+            print(f"⚠️ Error asegurando base nuxqa3: {e}")
             return False

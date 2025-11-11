@@ -44,7 +44,7 @@ class TestCasoAutomatizado1:
 
                 # Navegar a la página
                 print("🌐 Navegando a la página principal...")
-                home_page.navigate_to(Config.BASE_URL_ES)  # Usar URL específica para español
+                home_page.navigate_to(Config.BASE_URL_EN)  # Usar URL específica para español
                 home_page.take_screenshot("caso1_pagina_cargada")
 
                 # Configurar POS
@@ -78,9 +78,9 @@ class TestCasoAutomatizado1:
             # ===== SELECT FLIGHT PAGE =====
             with allure.step("Paso 2: Selección de vuelos y tarifa Basic"):
                 print("🛫 Cargando página de selección de vuelos...")
-                time.sleep(5)
-                
+
                 select_flight_page = SelectFlightPage(driver)
+                select_flight_page.wait_for_page_load(timeout=20)
                 
                 # Esperar carga de vuelos
                 print("⏳ Esperando carga de vuelos...")
@@ -104,9 +104,9 @@ class TestCasoAutomatizado1:
             # ===== PASSENGERS PAGE =====
             with allure.step("Paso 3: Información de pasajeros"):
                 print("👤 Cargando página de información de pasajeros...")
-                time.sleep(5)
-                
+
                 passengers_page = PassengersPage(driver)
+                passengers_page.wait_for_page_load(timeout=15)
 
                 # Verificar que cargó la página
                 print("🔍 Verificando carga de página de pasajeros...")
@@ -131,9 +131,9 @@ class TestCasoAutomatizado1:
             # ===== SERVICES PAGE =====
             with allure.step("Paso 4: Servicios adicionales - No seleccionar ninguno"):
                 print("🎫 Cargando página de servicios...")
-                time.sleep(5)
-                
+
                 services_page = ServicesPage(driver)
+                services_page.wait_for_page_load(timeout=15)
 
                 # Verificar que cargó la página
                 print("🔍 Verificando carga de página de servicios...")
@@ -153,9 +153,9 @@ class TestCasoAutomatizado1:
             # ===== SEATMAP PAGE =====
             with allure.step("Paso 5: Selección de asientos economy"):
                 print("💺 Cargando página de selección de asientos...")
-                time.sleep(5)
-                
+
                 seatmap_page = SeatmapPage(driver)
+                seatmap_page.wait_for_page_load(timeout=15)
 
                 # Verificar que cargó la página
                 print("🔍 Verificando carga de página de asientos...")
@@ -175,9 +175,9 @@ class TestCasoAutomatizado1:
             # ===== PAYMENTS PAGE =====
             with allure.step("Paso 6: Proceso de pago con tarjeta fake"):
                 print("💳 Cargando página de pagos...")
-                time.sleep(5)
-                
+
                 payments_page = PaymentsPage(driver)
+                payments_page.wait_for_page_load(timeout=15)
 
                 # Verificar que cargó la página
                 print("🔍 Verificando carga de página de pagos...")

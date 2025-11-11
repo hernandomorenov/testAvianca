@@ -1,6 +1,0 @@
-POS: Otros países
-Código: other
-Antes: spain
-Después: other
-URL: https://nuxqa4.avtest.ink/en/
-Estado: ÉXITO

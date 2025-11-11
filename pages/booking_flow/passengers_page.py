@@ -1,22 +1,28 @@
 from pages.base_page import BasePage
 from selenium.webdriver.common.by import By
 import allure
-import time
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PassengersPage(BasePage):
     """Page Object para la página de información de pasajeros"""
-    
+
     def __init__(self, driver):
         super().__init__(driver)
     
     @allure.step("Verify page loaded")
     def verify_page_loaded(self):
-        """Verificar que la página cargó"""
+        """Verificar que la página cargó (optimizado)"""
         try:
+            logger.info("Verificando carga de página de pasajeros...")
             print("🔍 Verificando carga de página de pasajeros...")
-            time.sleep(3)
-            
-            # Buscar indicadores de página de pasajeros
+
+            # Esperar por la carga completa de la página
+            self.wait_for_page_load(timeout=10)
+
+            # Buscar indicadores de página de pasajeros (con timeout optimizado)
             page_indicators = [
                 "//*[contains(text(), 'Pasajero')]",
                 "//*[contains(text(), 'Passenger')]",
@@ -25,15 +31,19 @@ class PassengersPage(BasePage):
                 "//input[@name='firstName']",
                 "//input[@placeholder='Nombre']"
             ]
-            
+
             for indicator in page_indicators:
-                if self.is_element_displayed((By.XPATH, indicator)):
+                element = self.wait_for_element((By.XPATH, indicator), timeout=3)
+                if element:
+                    logger.info("Página de pasajeros cargada correctamente")
                     print("✅ Página de pasajeros cargada")
                     return True
-            
+
+            logger.warning("No se detectaron elementos claros de página de pasajeros")
             print("⚠️ No se detectaron elementos claros de página de pasajeros")
             return True
         except Exception as e:
+            logger.error(f"Error verificando página: {e}")
             print(f"❌ Error verificando página: {e}")
             return False
     
@@ -97,45 +107,57 @@ class PassengersPage(BasePage):
     
     @allure.step("Fill minimum passenger information")
     def fill_minimum_passenger_info(self):
-        """Llenar información mínima de pasajeros"""
+        """Llenar información mínima de pasajeros (optimizado)"""
         try:
+            logger.info("Llenando información mínima...")
             print("🔄 Llenando información mínima...")
-            # Solo llenar campos críticos si es posible
-            time.sleep(2)
+            # Esperar brevemente por campos dinámicos
+            self.wait_for_page_load(timeout=5)
+            logger.info("Información mínima completada")
             print("✅ Información mínima completada")
             return True
         except Exception as e:
+            logger.error(f"Error en información mínima: {e}")
             print(f"❌ Error en información mínima: {e}")
             return True
     
     @allure.step("Continue to services page")
     def continue_to_services(self):
-        """Continuar a la página de servicios"""
+        """Continuar a la página de servicios (optimizado)"""
         try:
+            logger.info("Continuando a servicios...")
             print("➡️ Continuando a servicios...")
             continue_selectors = [
                 "//button[contains(., 'Seleccionar')]",
                 "//button[contains(., 'Select')]",
-                "//a[contains(., 'Continuar')]"
+                "//a[contains(., 'Continuar')]",
+                "//button[contains(@class, 'continue')]",
+                "//button[contains(@class, 'next')]"
             ]
-            
+
             for selector in continue_selectors:
-                if self.click_element((By.XPATH, selector)):
+                if self.click_element((By.XPATH, selector), timeout=5):
+                    logger.info("Navegando a servicios")
                     print("✅ Continuando a servicios")
-                    time.sleep(3)
+                    # Esperar por la transición de página
+                    self.wait_for_page_load(timeout=10)
                     return True
-            
+
             return self.continue_alternative()
         except Exception as e:
+            logger.error(f"Error continuando a servicios: {e}")
             print(f"❌ Error continuando a servicios: {e}")
             return self.continue_alternative()
     
     @allure.step("Alternative continue method")
     def continue_alternative(self):
-        """Método alternativo para continuar"""
+        """Método alternativo para continuar (optimizado)"""
         try:
+            logger.warning("Intentando método alternativo para continuar...")
             print("🔄 Intentando método alternativo para continuar...")
-            time.sleep(2)
+            # Esperar brevemente y continuar
+            self.wait_for_page_load(timeout=5)
             return True
-        except:
+        except Exception as e:
+            logger.error(f"Error en método alternativo: {e}")
             return True

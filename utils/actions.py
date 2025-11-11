@@ -4,7 +4,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 import allure
 import time
 import os
@@ -28,11 +28,11 @@ class Actions:
     def navigate_to(self, url):
         """Navegar a una URL específica"""
         try:
-            print(f"🌐 Navegando a: {url}")
+            print(f"🌐 Navegando a: ✈️🛫🛬{url}")
             self.driver.get(url)
             
             # Esperar con diferentes estrategias
-            WebDriverWait(self.driver, 15).until(
+            WebDriverWait(self.driver, 5).until(
                 lambda d: d.execute_script("return document.readyState") == "complete"
             )
             
@@ -59,7 +59,7 @@ class Actions:
             return False
     
     @allure.step("Find element: {locator}")
-    def find_element(self, locator, timeout=10):
+    def find_element(self, locator, timeout=7):
         """Encontrar elemento con espera explícita"""
         try:
             element = WebDriverWait(self.driver, timeout).until(
@@ -71,7 +71,7 @@ class Actions:
             return None
     
     @allure.step("Click element: {locator}")
-    def click_element(self, locator, timeout=10):
+    def click_element(self, locator, timeout=5):
         """Hacer clic en un elemento"""
         try:
             element = self.wait.until(EC.element_to_be_clickable(locator))

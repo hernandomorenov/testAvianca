@@ -1,14 +1,31 @@
-selenium==4.15.0 #automatización web
-pytest==7.4.3 #testing
-pytest-xdist==3.3.1 
-pytest-html==4.1.1 
+# Core testing framework
+selenium==4.15.0
+pytest==7.4.3
+pytest-xdist==3.5.0
+pytest-html==4.1.1
 pytest-metadata==3.0.0
-allure-pytest==2.13.2 #reportes profesionales
+pytest-timeout==2.2.0
+
+# Allure reporting
+allure-pytest==2.13.2
 allure-python-commons==2.13.2
-opencv-python==4.8.1.78 #visión por computadora
-pyautogui==0.9.54 #automatización de escritorio
-Pillow==10.3.0 #procesamiento de imágenes
-faker==19.6.2 #datos de prueba
-#sqlite3
+
+# Video recording and image processing
+# NumPy debe estar antes de OpenCV para compatibilidad
+numpy<2.0.0
+opencv-python==4.10.0.84
+pyautogui==0.9.54
+Pillow==10.3.0
+
+# Test data generation
+faker==19.6.2
+
+# Utilities
 python-dateutil==2.8.2
+python-dotenv==1.0.0
 webdriver-manager==4.0.1
+
+# Database (sqlite3 viene con Python)
+
+# Logging y debugging
+colorlog==6.8.0
