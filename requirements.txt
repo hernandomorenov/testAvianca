@@ -7,8 +7,8 @@ pytest-metadata==3.0.0
 pytest-timeout==2.2.0
 
 # Allure reporting
-allure-pytest==2.13.2
-allure-python-commons==2.13.2
+allure-pytest==2.13.5
+allure-python-commons==2.13.5
 
 # Video recording and image processing
 # NumPy debe estar antes de OpenCV para compatibilidad

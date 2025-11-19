@@ -15,14 +15,14 @@ def test_network_connectivity():
     print("🔍 Verificando conectividad de red...")
     
     test_urls = [
+        "https://nuxqa3.avtest.ink/",
         "https://nuxqa4.avtest.ink/",
         "https://nuxqa5.avtest.ink/",
-        "https://google.com"
-    ]
+        ]
     
     for url in test_urls:
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=7)
             print(f"✅ {url} - Status: {response.status_code}")
         except Exception as e:
             print(f"❌ {url} - Error: {e}")

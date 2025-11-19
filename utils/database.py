@@ -73,29 +73,55 @@ class Database:
             logger.error(f"Error inicializando base de datos: {e}")
             print(f"❌ Error inicializando base de datos: {e}")
     
-    def insert_result(self, test_name, status, browser, url=None, execution_time=0,
-                     error_message=None, environment=None, screenshot_path=None, video_path=None):
-        """Insertar resultado de test en la base de datos"""
+    # En utils/database.py - actualiza el método insert_result
+
+    def insert_result(self, test_name, status, browser, url, execution_time, error_message=None, additional_data=None):
+        """Insertar resultado de test en la base de datos - VERSIÓN CORREGIDA"""
         try:
-            cursor = self.connection.cursor()
-
-            cursor.execute('''
-                INSERT INTO test_results
-                (test_name, status, browser, url, execution_time, error_message, environment, screenshot_path, video_path)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (test_name, status, browser, url, execution_time, error_message, environment, screenshot_path, video_path))
-
-            test_id = cursor.lastrowid
-            self.connection.commit()
-
-            logger.info(f"Resultado guardado en BD: {test_name} - {status}")
-            print(f"✅ Resultado guardado en BD: {test_name} - {status}")
-            return test_id
-
-        except sqlite3.Error as e:
-            logger.error(f"Error insertando resultado: {e}")
+            # Primero verificar las columnas de la tabla
+            cursor = self.conn.cursor()
+            cursor.execute("PRAGMA table_info(test_results)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            # Construir la consulta según las columnas disponibles
+            if 'video_path' in columns:
+                query = """
+                INSERT INTO test_results 
+                (test_name, status, browser, url, execution_time, error_message, additional_data, video_path, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """
+                params = (test_name, status, browser, url, execution_time, error_message, additional_data, None)
+            else:
+                query = """
+                INSERT INTO test_results 
+                (test_name, status, browser, url, execution_time, error_message, additional_data, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """
+                params = (test_name, status, browser, url, execution_time, error_message, additional_data)
+            
+            cursor.execute(query, params)
+            self.conn.commit()
+            print(f"✅ Resultado insertado en BD: {test_name} - {status}")
+            return True
+            
+        except Exception as e:
             print(f"❌ Error insertando resultado: {e}")
-            return None
+            # Intentar con consulta básica sin video_path
+            try:
+                cursor = self.conn.cursor()
+                query = """
+                INSERT INTO test_results 
+                (test_name, status, browser, url, execution_time, error_message, additional_data, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                """
+                params = (test_name, status, browser, url, execution_time, error_message, additional_data)
+                cursor.execute(query, params)
+                self.conn.commit()
+                print(f"✅ Resultado insertado (fallback): {test_name}")
+                return True
+            except Exception as e2:
+                print(f"❌ Error incluso con fallback: {e2}")
+                return False
     
     def add_evidence(self, test_id, evidence_type, evidence_path, description=None):
         """Agregar evidencia (screenshot, video) a un test"""

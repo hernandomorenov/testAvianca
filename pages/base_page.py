@@ -395,3 +395,17 @@ class BasePage:
         print(f"📄 Título: {self.get_page_title()}")
         print(f"🌐 URL: {self.get_current_url()}")
         print(f"🗣️ Idioma: {self.get_page_language()}")
+        
+    # ========================================================================
+    # MÉTODOS DE ESPERA RÁPIDA
+    # ========================================================================
+        
+        
+    def wait_for_element_quick(self, locator, timeout=2):
+        """Wait rápido para elementos con timeout corto"""
+        try:
+            return WebDriverWait(self.driver, timeout).until(
+                EC.presence_of_element_located(locator)
+            )
+        except:
+            return None

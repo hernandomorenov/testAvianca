@@ -53,14 +53,20 @@ Sistema completo y optimizado de automatización de pruebas para plataforma de r
 ```bash
 # 1. Instalar Python 3.8+
 # Descargar desde: https://www.python.org/downloads/
+# IMPORTANTE: Marcar la opción "Add Python to PATH" durante la instalación
 
 # 2. Instalar Git
 # Descargar desde: https://git-scm.com/download/win
 
-# 3. Verificar instalación
+# 3. Instalar Java 8+ para Allure
+# Descargar desde: https://www.oracle.com/java/technologies/downloads/
+# O usar: winget install -e --id Oracle.JDK.17
+
+# 4. Verificar instalación
 python --version
 pip --version
 git --version
+java --version
 ```
 
 #### 🍎 macOS
